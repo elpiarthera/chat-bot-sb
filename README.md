@@ -271,4 +271,3 @@ Once deployed, you should be able to use your hosted instance of My AI team via 
 ## Contributing
 
 We are working on a guide for contributing.
-
