@@ -154,10 +154,10 @@ Follow the instructions [here](https://github.com/jmorganca/ollama#macos).
 In your terminal at the root of your local My AI team repository, run:
 
 ```bash
-npm run chat
+npm run dev
 ```
 
-Your local instance of My AI team should now be running at [http://localhost:3000](http://localhost:3000). Be sure to use a compatible node version (i.e. v18).
+Your local instance of My AI team should now be running at [http://localhost:3000](http://localhost:3000). Be sure to use a compatible node version (i.e. v20).
 
 You can view your backend GUI at [http://localhost:54323/project/default/editor](http://localhost:54323/project/default/editor).
 
