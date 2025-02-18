@@ -1,57 +1,64 @@
-import { supabase } from "@/lib/supabase/browser-client"
-import { toast } from "sonner"
+// db/files.ts
 
-export const uploadFile = async (
+export const createDocXFile = async (
+  text: string,
   file: File,
-  payload: {
-    name: string
-    user_id: string
-    file_id: string
-  }
+  fileRecord: TablesInsert<"files">,
+  workspace_id: string,
+  embeddingsProvider: "openai" | "local"
 ) => {
-  const SIZE_LIMIT = parseInt(
-    process.env.NEXT_PUBLIC_USER_FILE_SIZE_LIMIT || "10000000"
-  )
+  const { data: createdFile, error } = await supabase
+    .from("files")
+    .insert([fileRecord])
+    .select("*")
+    .single()
 
-  if (file.size > SIZE_LIMIT) {
-    throw new Error(
-      `File must be less than ${Math.floor(SIZE_LIMIT / 1000000)}MB`
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  await createFileWorkspace({
+    user_id: createdFile.user_id,
+    file_id: createdFile.id,
+    workspace_id
+  })
+
+  const filePath = await uploadFile(file, {
+    name: createdFile.name,
+    user_id: createdFile.user_id,
+    file_id: createdFile.name // I think you meant createdFile.id here
+  })
+
+  await updateFile(createdFile.id, {
+    file_path: filePath
+  })
+
+  // Use FormData
+  const formData = new FormData()
+  formData.append("text", text)
+  formData.append("fileId", createdFile.id)
+  formData.append("embeddingsProvider", embeddingsProvider)
+  formData.append("fileExtension", "docx") // No need to get it from the file name.
+
+  const response = await fetch("/api/retrieval/process/docx", {
+    method: "POST", // Ensure POST method
+    body: formData // Send FormData directly
+    // DO NOT set Content-Type, let the browser handle it.
+  })
+
+  if (!response.ok) {
+    const jsonText = await response.text()
+    const json = JSON.parse(jsonText)
+    console.error(
+      `Error processing file:${createdFile.id}, status:${response.status}, response:${json.message}`
     )
-  }
-
-  const filePath = `${payload.user_id}/${Buffer.from(payload.file_id).toString("base64")}`
-
-  const { error } = await supabase.storage
-    .from("files")
-    .upload(filePath, file, {
-      upsert: true
+    toast.error("Failed to process file. Reason:" + json.message, {
+      duration: 10000
     })
-
-  if (error) {
-    throw new Error("Error uploading file")
+    await deleteFile(createdFile.id)
   }
 
-  return filePath
-}
+  const fetchedFile = await getFileById(createdFile.id)
 
-export const deleteFileFromStorage = async (filePath: string) => {
-  const { error } = await supabase.storage.from("files").remove([filePath])
-
-  if (error) {
-    toast.error("Failed to remove file!")
-    return
-  }
-}
-
-export const getFileFromStorage = async (filePath: string) => {
-  const { data, error } = await supabase.storage
-    .from("files")
-    .createSignedUrl(filePath, 60 * 60 * 24) // 24hrs
-
-  if (error) {
-    console.error(`Error uploading file with path: ${filePath}`, error)
-    throw new Error("Error downloading file")
-  }
-
-  return data.signedUrl
+  return fetchedFile
 }
