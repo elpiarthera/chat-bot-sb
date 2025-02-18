@@ -7,6 +7,7 @@ import { FC, useContext, useEffect, useRef } from "react"
 import { Button } from "../ui/button"
 import { ChatSettingsForm } from "../ui/chat-settings-form"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
+import { ModelIcon } from "../models/model-icon"
 
 interface ChatSettingsProps {}
 
@@ -67,16 +68,12 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   return (
     <Popover>
       <PopoverTrigger>
-        <Button
-          ref={buttonRef}
-          className="flex items-center space-x-2"
-          variant="ghost"
-        >
-          <div className="max-w-[120px] truncate text-lg sm:max-w-[300px] lg:max-w-[500px]">
-            {fullModel?.modelName || chatSettings.model}
-          </div>
-
-          <IconAdjustmentsHorizontal size={28} />
+        <Button ref={buttonRef} variant="ghost" size="icon">
+          <ModelIcon
+            provider={fullModel?.provider || "custom"}
+            width={28}
+            height={28}
+          />
         </Button>
       </PopoverTrigger>
 
