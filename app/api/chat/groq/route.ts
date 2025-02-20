@@ -5,6 +5,7 @@ import { OpenAIStream, StreamingTextResponse } from "ai"
 import OpenAI from "openai"
 
 export const runtime = "edge"
+
 export async function POST(request: Request) {
   const json = await request.json()
   const { chatSettings, messages } = json as {
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
   try {
     const profile = await getServerProfile()
 
-    checkApiKey(profile.groq_api_key, "G")
+    checkApiKey(profile.groq_api_key, "Groq")
 
     // Groq is compatible with the OpenAI SDK
     const groq = new OpenAI({
@@ -31,7 +32,8 @@ export async function POST(request: Request) {
       stream: true
     })
 
-    // Convert the response into a friendly text-stream.
+    // Convert the response into a friendly text-stream
+    // @ts-ignore - Known type mismatch between Groq and OpenAI response types
     const stream = OpenAIStream(response)
 
     // Respond with the stream
@@ -48,6 +50,7 @@ export async function POST(request: Request) {
         "Groq API Key is incorrect. Please fix it in your profile settings."
     }
 
+    console.error("Error calling Groq API:", error)
     return new Response(JSON.stringify({ message: errorMessage }), {
       status: errorCode
     })

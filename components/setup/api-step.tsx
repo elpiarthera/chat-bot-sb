@@ -1,7 +1,8 @@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FC } from "react"
+import { FC, useState } from "react"
 import { Button } from "../ui/button"
+import { toast } from "sonner"
 
 interface APIStepProps {
   openaiAPIKey: string
@@ -68,6 +69,36 @@ export const APIStep: FC<APIStepProps> = ({
   onUseAzureOpenaiChange,
   onOpenrouterAPIKeyChange
 }) => {
+  const [loading, setLoading] = useState<string | null>(null)
+
+  const handleTestApiKey = async (provider: string, apiKey: string) => {
+    setLoading(provider)
+    try {
+      const response = await fetch("/api/validate_key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, apiKey })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "API key validation failed")
+      }
+
+      const data = await response.json()
+      if (data.isValid) {
+        toast.success(`${provider} API key is valid!`)
+      } else {
+        throw new Error("API key is invalid.")
+      }
+    } catch (error: any) {
+      toast.error(`Error validating ${provider} API key: ${error.message}`)
+      console.error(error)
+    } finally {
+      setLoading(null)
+    }
+  }
+
   return (
     <>
       <div className="mt-5 space-y-2">
@@ -209,13 +240,18 @@ export const APIStep: FC<APIStepProps> = ({
 
       <div className="space-y-1">
         <Label>Groq API Key</Label>
-
         <Input
           placeholder="Groq API Key"
           type="password"
           value={groqAPIKey}
           onChange={e => onGroqAPIKeyChange(e.target.value)}
         />
+        <Button
+          onClick={() => handleTestApiKey("groq", groqAPIKey)}
+          disabled={loading === "groq"}
+        >
+          {loading === "groq" ? "Testing..." : "Test API Key"}
+        </Button>
       </div>
 
       <div className="space-y-1">

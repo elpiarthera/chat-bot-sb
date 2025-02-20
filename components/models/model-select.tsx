@@ -1,7 +1,7 @@
 import { ChatbotUIContext } from "@/context/context"
 import { LLM, LLMID, ModelProvider } from "@/types"
 import { IconCheck, IconChevronDown } from "@tabler/icons-react"
-import { FC, useContext, useEffect, useRef, useState } from "react"
+import { FC, useContext, useEffect, useRef, useState, useMemo } from "react"
 import { Button } from "../ui/button"
 import {
   DropdownMenu,
@@ -13,6 +13,8 @@ import { Tabs, TabsList, TabsTrigger } from "../ui/tabs"
 import { ModelIcon } from "./model-icon"
 import { ModelOption } from "./model-option"
 import { Select, SelectContent, SelectTrigger, SelectValue } from "../ui/select"
+import { GROQ_LLM_LIST } from "@/lib/models/llm/groq-llm-list"
+import { LLM_LIST } from "@/lib/models/llm/llm-list"
 
 interface ModelSelectProps {
   selectedModelId: string
@@ -55,19 +57,42 @@ export const ModelSelect: FC<ModelSelectProps> = ({
     setIsOpen(false)
   }
 
-  const allModels = [
-    ...models.map(model => ({
-      modelId: model.model_id as LLMID,
-      modelName: model.name,
-      provider: "custom" as ModelProvider,
-      hostedId: model.id,
-      platformLink: "",
-      imageInput: false
-    })),
-    ...availableHostedModels,
-    ...availableLocalModels,
-    ...availableOpenRouterModels
-  ]
+  // Build allModels dynamically based on API key presence
+  const allModels = useMemo(() => {
+    let modelsList = [
+      ...models.map(model => ({
+        modelId: model.model_id as LLMID,
+        modelName: model.name,
+        provider: "custom" as ModelProvider,
+        hostedId: model.id,
+        platformLink: "",
+        imageInput: false
+      })),
+      ...availableHostedModels,
+      ...availableLocalModels
+    ]
+
+    // Add Groq models only if API key is present
+    if (profile?.groq_api_key || process.env.GROQ_API_KEY) {
+      modelsList = [
+        ...modelsList,
+        ...LLM_LIST.filter(model => model.provider === "groq")
+      ]
+    }
+
+    // Add OpenRouter models if API key is present
+    if (profile?.openrouter_api_key || process.env.OPENROUTER_API_KEY) {
+      modelsList = [...modelsList, ...availableOpenRouterModels]
+    }
+
+    return modelsList
+  }, [
+    profile,
+    models,
+    availableHostedModels,
+    availableLocalModels,
+    availableOpenRouterModels
+  ])
 
   const groupedModels = allModels.reduce<Record<string, LLM[]>>(
     (groups, model) => {
@@ -86,6 +111,9 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   )
 
   if (!profile) return null
+
+  // Add this temporarily to verify the import
+  console.log("Groq Models:", GROQ_LLM_LIST)
 
   return (
     <Select
