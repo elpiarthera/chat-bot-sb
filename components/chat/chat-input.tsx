@@ -268,7 +268,6 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
               )}
               onClick={() => {
                 if (!userInput) return
-
                 handleSendMessage(userInput, chatMessages, false)
               }}
               size={30}

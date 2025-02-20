@@ -12,15 +12,20 @@ import { Input } from "../ui/input"
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs"
 import { ModelIcon } from "./model-icon"
 import { ModelOption } from "./model-option"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "../ui/select"
 
 interface ModelSelectProps {
   selectedModelId: string
   onSelectModel: (modelId: LLMID) => void
+  chatSettings: any
+  onChangeChatSettings: (settings: any) => void
 }
 
 export const ModelSelect: FC<ModelSelectProps> = ({
   selectedModelId,
-  onSelectModel
+  onSelectModel,
+  chatSettings,
+  onChangeChatSettings
 }) => {
   const {
     profile,
@@ -83,55 +88,20 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   if (!profile) return null
 
   return (
-    <DropdownMenu
-      open={isOpen}
-      onOpenChange={isOpen => {
-        setIsOpen(isOpen)
-        setSearch("")
+    <Select
+      value={selectedModelId}
+      onValueChange={value => {
+        handleSelectModel(value as LLMID)
+        onChangeChatSettings({
+          ...chatSettings,
+          model: value as LLMID
+        })
       }}
     >
-      <DropdownMenuTrigger
-        className="bg-background w-full justify-start border-2 px-3 py-5"
-        asChild
-        disabled={allModels.length === 0}
-      >
-        {allModels.length === 0 ? (
-          <div className="rounded text-sm font-bold">
-            Unlock models by entering API keys in your profile settings.
-          </div>
-        ) : (
-          <Button
-            ref={triggerRef}
-            className="flex items-center justify-between"
-            variant="ghost"
-          >
-            <div className="flex items-center">
-              {selectedModel ? (
-                <>
-                  <ModelIcon
-                    provider={selectedModel?.provider}
-                    width={26}
-                    height={26}
-                  />
-                  <div className="ml-2 flex items-center">
-                    {selectedModel?.modelName}
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center">Select a model</div>
-              )}
-            </div>
-
-            <IconChevronDown />
-          </Button>
-        )}
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        className="space-y-2 overflow-auto p-2"
-        style={{ width: triggerRef.current?.offsetWidth }}
-        align="start"
-      >
+      <SelectTrigger className="w-[250px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
         <Tabs value={tab} onValueChange={(value: any) => setTab(value)}>
           {availableLocalModels.length > 0 && (
             <TabsList defaultValue="hosted" className="grid grid-cols-2">
@@ -197,7 +167,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
             )
           })}
         </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </SelectContent>
+    </Select>
   )
 }

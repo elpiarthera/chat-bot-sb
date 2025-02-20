@@ -3,16 +3,35 @@ import { ChatbotUIContext } from "@/context/context"
 import { IconInfoCircle, IconMessagePlus } from "@tabler/icons-react"
 import { FC, useContext } from "react"
 import { WithTooltip } from "../ui/with-tooltip"
+import { Tables } from "@/supabase/types"
+import { AssistantSelect } from "./assistant-select"
+import { PresetSelect } from "./preset-select"
 
-interface ChatSecondaryButtonsProps {}
-
-export const ChatSecondaryButtons: FC<ChatSecondaryButtonsProps> = ({}) => {
-  const { selectedChat } = useContext(ChatbotUIContext)
+export const ChatSecondaryButtons: FC = () => {
+  const {
+    selectedChat,
+    assistants,
+    presets,
+    selectedAssistant,
+    selectedPreset,
+    setSelectedAssistant,
+    setSelectedPreset
+  } = useContext(ChatbotUIContext)
 
   const { handleNewChat } = useChatHandler()
 
   return (
     <>
+      <AssistantSelect
+        assistants={assistants}
+        selectedAssistant={selectedAssistant}
+        onAssistantSelect={setSelectedAssistant}
+      />
+      <PresetSelect
+        presets={presets}
+        selectedPreset={selectedPreset}
+        onPresetSelect={setSelectedPreset}
+      />
       {selectedChat && (
         <>
           <WithTooltip

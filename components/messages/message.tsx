@@ -33,7 +33,8 @@ interface MessageProps {
   isLast: boolean
   onStartEdit: (message: Tables<"messages">) => void
   onCancelEdit: () => void
-  onSubmitEdit: (value: string, sequenceNumber: number) => void
+  onSubmitEdit: (editedContent: string, message: Tables<"messages">) => void
+  children?: React.ReactNode
 }
 
 export const Message: FC<MessageProps> = ({
@@ -43,7 +44,8 @@ export const Message: FC<MessageProps> = ({
   isLast,
   onStartEdit,
   onCancelEdit,
-  onSubmitEdit
+  onSubmitEdit,
+  children
 }) => {
   const {
     assistants,
@@ -93,7 +95,7 @@ export const Message: FC<MessageProps> = ({
   }
 
   const handleSendEdit = () => {
-    onSubmitEdit(editedMessage, message.sequence_number)
+    onSubmitEdit(editedMessage, message)
     onCancelEdit()
   }
 
@@ -440,6 +442,8 @@ export const Message: FC<MessageProps> = ({
           }}
         />
       )}
+
+      {children}
     </div>
   )
 }

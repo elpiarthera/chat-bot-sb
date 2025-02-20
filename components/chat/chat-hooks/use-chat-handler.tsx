@@ -5,6 +5,7 @@ import { getAssistantToolsByAssistantId } from "@/db/assistant-tools"
 import { updateChat } from "@/db/chats"
 import { getCollectionFilesByCollectionId } from "@/db/collection-files"
 import { deleteMessagesIncludingAndAfter } from "@/db/messages"
+import { updateMessage } from "@/db/messages"
 import { buildFinalMessages } from "@/lib/build-prompt"
 import { Tables } from "@/supabase/types"
 import { ChatMessage, ChatPayload, LLMID, ModelProvider } from "@/types"
@@ -66,7 +67,9 @@ export const useChatHandler = () => {
     models,
     isPromptPickerOpen,
     isFilePickerOpen,
-    isToolPickerOpen
+    isToolPickerOpen,
+    setSelectedAssistant,
+    setSelectedPreset
   } = useContext(ChatbotUIContext)
 
   const chatInputRef = useRef<HTMLTextAreaElement>(null)
@@ -79,6 +82,9 @@ export const useChatHandler = () => {
 
   const handleNewChat = async () => {
     if (!selectedWorkspace) return
+
+    setSelectedAssistant(null)
+    setSelectedPreset(null)
 
     setUserInput("")
     setChatMessages([])
@@ -391,18 +397,19 @@ export const useChatHandler = () => {
 
   const handleSendEdit = async (
     editedContent: string,
-    sequenceNumber: number
+    message: Tables<"messages">
   ) => {
     if (!selectedChat) return
 
     await deleteMessagesIncludingAndAfter(
       selectedChat.user_id,
       selectedChat.id,
-      sequenceNumber
+      message.sequence_number
     )
 
     const filteredMessages = chatMessages.filter(
-      chatMessage => chatMessage.message.sequence_number < sequenceNumber
+      chatMessage =>
+        chatMessage.message.sequence_number < message.sequence_number
     )
 
     setChatMessages(filteredMessages)
