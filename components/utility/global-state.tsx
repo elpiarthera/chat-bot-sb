@@ -26,7 +26,7 @@ import {
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { useRouter } from "next/navigation"
-import { FC, useEffect, useState } from "react"
+import { FC, useEffect, useState, useCallback } from "react"
 
 interface GlobalStateProps {
   children: React.ReactNode
@@ -123,51 +123,26 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   const [selectedTools, setSelectedTools] = useState<Tables<"tools">[]>([])
   const [toolInUse, setToolInUse] = useState<string>("none")
 
-  useEffect(() => {
-    ;(async () => {
-      const profile = await fetchStartingData()
+  // Combine both fetchStartingData functions into one
+  const fetchStartingData = useCallback(async () => {
+    try {
+      const session = (await supabase.auth.getSession()).data.session
+      if (!session) return null
 
-      if (profile) {
-        const hostedModelRes = await fetchHostedModels(profile)
-        if (!hostedModelRes) return
-
-        setEnvKeyMap(hostedModelRes.envKeyMap)
-        setAvailableHostedModels(hostedModelRes.hostedModels)
-
-        if (
-          profile["openrouter_api_key"] ||
-          hostedModelRes.envKeyMap["openrouter"]
-        ) {
-          const openRouterModels = await fetchOpenRouterModels()
-          if (!openRouterModels) return
-          setAvailableOpenRouterModels(openRouterModels)
-        }
-      }
-
-      if (process.env.NEXT_PUBLIC_OLLAMA_URL) {
-        const localModels = await fetchOllamaModels()
-        if (!localModels) return
-        setAvailableLocalModels(localModels)
-      }
-    })()
-  }, [])
-
-  const fetchStartingData = async () => {
-    const session = (await supabase.auth.getSession()).data.session
-
-    if (session) {
       const user = session.user
-
       const profile = await getProfileByUserId(user.id)
       setProfile(profile)
 
       if (!profile.has_onboarded) {
-        return router.push("/setup")
+        router.push("/setup")
+        return null
       }
 
+      // Fetch and set workspaces
       const workspaces = await getWorkspacesByUserId(user.id)
       setWorkspaces(workspaces)
 
+      // Handle workspace images
       for (const workspace of workspaces) {
         let workspaceImageUrl = ""
 
@@ -194,8 +169,53 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
       }
 
       return profile
+    } catch (error) {
+      console.error("Error fetching starting data:", error)
+      return null
     }
-  }
+  }, [router, setProfile, setWorkspaces, setWorkspaceImages]) // Add dependencies
+
+  // Use the combined function in useEffect
+  useEffect(() => {
+    const initializeState = async () => {
+      try {
+        const profile = await fetchStartingData()
+
+        if (profile) {
+          const hostedModelRes = await fetchHostedModels(profile)
+          if (!hostedModelRes) return
+
+          setEnvKeyMap(hostedModelRes.envKeyMap)
+          setAvailableHostedModels(hostedModelRes.hostedModels)
+
+          if (
+            profile["openrouter_api_key"] ||
+            hostedModelRes.envKeyMap["openrouter"]
+          ) {
+            const openRouterModels = await fetchOpenRouterModels()
+            if (!openRouterModels) return
+            setAvailableOpenRouterModels(openRouterModels)
+          }
+        }
+
+        if (process.env.NEXT_PUBLIC_OLLAMA_URL) {
+          const localModels = await fetchOllamaModels()
+          if (!localModels) return
+          setAvailableLocalModels(localModels)
+        }
+      } catch (error) {
+        console.error("Error initializing state:", error)
+      }
+    }
+
+    initializeState()
+  }, [
+    fetchStartingData,
+    setEnvKeyMap,
+    setAvailableHostedModels,
+    setAvailableOpenRouterModels,
+    setAvailableLocalModels
+  ])
 
   return (
     <ChatbotUIContext.Provider

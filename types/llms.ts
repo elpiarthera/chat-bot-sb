@@ -7,6 +7,7 @@ export type LLMID =
   | MistralLLMID
   | GroqLLMID
   | PerplexityLLMID
+  | LlamaLLMID
 
 // OpenAI Models (UPDATED 5/13/24)
 export type OpenAILLMID =
@@ -60,6 +61,10 @@ export type PerplexityLLMID =
   | "sonar-small-online" // Sonar Small Online
   | "sonar-medium-chat" // Sonar Medium Chat
   | "sonar-medium-online" // Sonar Medium Online
+
+// Add Llama models
+export type LlamaLLMID = "llama2-70b-4096" | "llama-2-70b-chat"
+// Add other Llama models...
 
 export interface LLM {
   modelId: LLMID

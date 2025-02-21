@@ -28,9 +28,15 @@ import { TextareaAutosize } from "../ui/textarea-autosize"
 import { WithTooltip } from "../ui/with-tooltip"
 import { DeleteWorkspace } from "./delete-workspace"
 
-interface WorkspaceSettingsProps {}
+interface WorkspaceSettingsProps {
+  isOpen: boolean
+  onOpenChange: (isOpen: boolean) => void
+}
 
-export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
+export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({
+  isOpen,
+  onOpenChange
+}) => {
   const {
     profile,
     selectedWorkspace,
@@ -42,8 +48,6 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
   } = useContext(ChatbotUIContext)
 
   const buttonRef = useRef<HTMLButtonElement>(null)
-
-  const [isOpen, setIsOpen] = useState(false)
 
   const [name, setName] = useState(selectedWorkspace?.name || "")
   const [imageLink, setImageLink] = useState("")
@@ -67,13 +71,14 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
   })
 
   useEffect(() => {
+    if (!selectedWorkspace) return
+
     const workspaceImage =
-      workspaceImages.find(
-        image => image.path === selectedWorkspace?.image_path
-      )?.base64 || ""
+      workspaceImages.find(image => image.path === selectedWorkspace.image_path)
+        ?.base64 || ""
 
     setImageLink(workspaceImage)
-  }, [workspaceImages])
+  }, [workspaceImages, selectedWorkspace])
 
   const handleSave = async () => {
     if (!selectedWorkspace) return
@@ -141,7 +146,7 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
       })
     }
 
-    setIsOpen(false)
+    onOpenChange(false)
     setSelectedWorkspace(updatedWorkspace)
     setWorkspaces(workspaces => {
       return workspaces.map(workspace => {
@@ -165,7 +170,7 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
   if (!selectedWorkspace || !profile) return null
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
         <WithTooltip
           display={<div>Workspace Settings</div>}
@@ -173,7 +178,7 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
             <IconSettings
               className="ml-3 cursor-pointer pr-[5px] hover:opacity-50"
               size={32}
-              onClick={() => setIsOpen(true)}
+              onClick={() => onOpenChange(true)}
             />
           }
         />
@@ -279,13 +284,13 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
             {!selectedWorkspace.is_home && (
               <DeleteWorkspace
                 workspace={selectedWorkspace}
-                onDelete={() => setIsOpen(false)}
+                onDelete={() => onOpenChange(false)}
               />
             )}
           </div>
 
           <div className="space-x-2">
-            <Button variant="ghost" onClick={() => setIsOpen(false)}>
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
 

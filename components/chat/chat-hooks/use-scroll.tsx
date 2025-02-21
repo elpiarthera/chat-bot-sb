@@ -20,38 +20,11 @@ export const useScroll = () => {
   const [userScrolled, setUserScrolled] = useState(false)
   const [isOverflowing, setIsOverflowing] = useState(false)
 
-  useEffect(() => {
-    setUserScrolled(false)
-
-    if (!isGenerating && userScrolled) {
-      setUserScrolled(false)
+  const scrollToBottom = useCallback(() => {
+    const chatContainer = document.getElementById("chat-container")
+    if (chatContainer) {
+      chatContainer.scrollTop = chatContainer.scrollHeight
     }
-  }, [isGenerating])
-
-  useEffect(() => {
-    if (isGenerating && !userScrolled) {
-      scrollToBottom()
-    }
-  }, [chatMessages])
-
-  const handleScroll: UIEventHandler<HTMLDivElement> = useCallback(e => {
-    const target = e.target as HTMLDivElement
-    const bottom =
-      Math.round(target.scrollHeight) - Math.round(target.scrollTop) ===
-      Math.round(target.clientHeight)
-    setIsAtBottom(bottom)
-
-    const top = target.scrollTop === 0
-    setIsAtTop(top)
-
-    if (!bottom && !isAutoScrolling.current) {
-      setUserScrolled(true)
-    } else {
-      setUserScrolled(false)
-    }
-
-    const isOverflow = target.scrollHeight > target.clientHeight
-    setIsOverflowing(isOverflow)
   }, [])
 
   const scrollToTop = useCallback(() => {
@@ -60,17 +33,44 @@ export const useScroll = () => {
     }
   }, [])
 
-  const scrollToBottom = useCallback(() => {
-    isAutoScrolling.current = true
-
-    setTimeout(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "instant" })
-      }
-
-      isAutoScrolling.current = false
-    }, 100)
+  const handleScroll = useCallback((e: any) => {
+    const bottom =
+      e.target.scrollHeight - e.target.scrollTop === e.target.clientHeight
+    setIsAtBottom(bottom)
+    setUserScrolled(true)
   }, [])
+
+  useEffect(() => {
+    const chatContainer = document.getElementById("chat-container")
+    if (chatContainer) {
+      chatContainer.addEventListener("scroll", handleScroll)
+    }
+    return () => {
+      if (chatContainer) {
+        chatContainer.removeEventListener("scroll", handleScroll)
+      }
+    }
+  }, [handleScroll])
+
+  useEffect(() => {
+    if (!userScrolled || (isGenerating && isAtBottom)) {
+      scrollToBottom()
+    }
+  }, [isGenerating, userScrolled, isAtBottom, scrollToBottom])
+
+  // First useEffect - Reset userScrolled when generation stops
+  useEffect(() => {
+    if (!isGenerating && userScrolled) {
+      setUserScrolled(false)
+    }
+  }, [isGenerating, userScrolled])
+
+  // Second useEffect - Auto scroll during generation
+  useEffect(() => {
+    if (isGenerating && !userScrolled) {
+      scrollToBottom()
+    }
+  }, [chatMessages, isGenerating, userScrolled, scrollToBottom])
 
   return {
     messagesStartRef,

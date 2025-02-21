@@ -3,6 +3,7 @@ import remarkGfm from "remark-gfm"
 import remarkMath from "remark-math"
 import { MessageCodeBlock } from "./message-codeblock"
 import { MessageMarkdownMemoized } from "./message-markdown-memoized"
+import Image from "next/image"
 
 interface MessageMarkdownProps {
   content: string
@@ -18,7 +19,23 @@ export const MessageMarkdown: FC<MessageMarkdownProps> = ({ content }) => {
           return <p className="mb-2 last:mb-0">{children}</p>
         },
         img({ node, ...props }) {
-          return <img className="max-w-[67%]" {...props} />
+          return (
+            <div className="relative max-w-[67%] overflow-hidden">
+              <Image
+                className="rounded-lg"
+                src={props.src || ""}
+                alt={props.alt || "User-provided image"}
+                width={500}
+                height={300}
+                style={{ objectFit: "contain" }}
+                loading="lazy"
+                quality={100}
+                onError={e => {
+                  console.error("Image failed to load:", e)
+                }}
+              />
+            </div>
+          )
         },
         code({ node, className, children, ...props }) {
           const childArray = React.Children.toArray(children)

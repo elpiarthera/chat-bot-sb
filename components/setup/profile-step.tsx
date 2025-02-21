@@ -33,22 +33,16 @@ export const ProfileStep: FC<ProfileStepProps> = ({
 }) => {
   const [loading, setLoading] = useState(false)
 
-  const debounce = (func: (...args: any[]) => void, wait: number) => {
-    let timeout: NodeJS.Timeout | null
-
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout | null = null
     return (...args: any[]) => {
-      const later = () => {
-        if (timeout) clearTimeout(timeout)
-        func(...args)
-      }
-
       if (timeout) clearTimeout(timeout)
-      timeout = setTimeout(later, wait)
+      timeout = setTimeout(() => func(...args), wait)
     }
   }
 
   const checkUsernameAvailability = useCallback(
-    debounce(async (username: string) => {
+    async (username: string) => {
       if (!username) return
 
       if (username.length < PROFILE_USERNAME_MIN) {
@@ -72,19 +66,27 @@ export const ProfileStep: FC<ProfileStepProps> = ({
 
       setLoading(true)
 
-      const response = await fetch(`/api/username/available`, {
-        method: "POST",
-        body: JSON.stringify({ username })
-      })
+      try {
+        const response = await fetch(`/api/username/available`, {
+          method: "POST",
+          body: JSON.stringify({ username })
+        })
 
-      const data = await response.json()
-      const isAvailable = data.isAvailable
+        const data = await response.json()
+        onUsernameAvailableChange(data.isAvailable)
+      } catch (error) {
+        toast.error("Failed to check username availability")
+        onUsernameAvailableChange(false)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [onUsernameAvailableChange]
+  )
 
-      onUsernameAvailableChange(isAvailable)
-
-      setLoading(false)
-    }, 500),
-    []
+  const debouncedCheck = useCallback(
+    debounce((username: string) => checkUsernameAvailability(username), 500),
+    [checkUsernameAvailability]
   )
 
   return (
@@ -109,7 +111,7 @@ export const ProfileStep: FC<ProfileStepProps> = ({
             value={username}
             onChange={e => {
               onUsernameChange(e.target.value)
-              checkUsernameAvailability(e.target.value)
+              debouncedCheck(e.target.value)
             }}
             minLength={PROFILE_USERNAME_MIN}
             maxLength={PROFILE_USERNAME_MAX}

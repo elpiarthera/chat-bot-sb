@@ -1,13 +1,13 @@
 import { LLMID } from "@/types"
 
-type ChatSettingLimits = {
+export interface ChatSettingLimits {
   MIN_TEMPERATURE: number
   MAX_TEMPERATURE: number
   MAX_TOKEN_OUTPUT_LENGTH: number
   MAX_CONTEXT_LENGTH: number
 }
 
-export const CHAT_SETTING_LIMITS: Record<LLMID, ChatSettingLimits> = {
+export const CHAT_SETTING_LIMITS: Partial<Record<LLMID, ChatSettingLimits>> = {
   // ANTHROPIC MODELS
   "claude-2.1": {
     MIN_TEMPERATURE: 0.0,
@@ -146,8 +146,8 @@ export const CHAT_SETTING_LIMITS: Record<LLMID, ChatSettingLimits> = {
     MAX_CONTEXT_LENGTH: 128000
   },
   "gpt-4": {
-    MIN_TEMPERATURE: 0.0,
-    MAX_TEMPERATURE: 2.0,
+    MIN_TEMPERATURE: 0,
+    MAX_TEMPERATURE: 2,
     MAX_TOKEN_OUTPUT_LENGTH: 4096,
     MAX_CONTEXT_LENGTH: 8192
   },
@@ -240,9 +240,7 @@ export const CHAT_SETTING_LIMITS: Record<LLMID, ChatSettingLimits> = {
   "llama2-70b-4096": {
     MIN_TEMPERATURE: 0,
     MAX_TEMPERATURE: 1,
-    MIN_CONTEXT_LENGTH: 0,
-    MAX_CONTEXT_LENGTH: 4096,
-    MIN_TOKEN_OUTPUT_LENGTH: 1,
-    MAX_TOKEN_OUTPUT_LENGTH: 4096
+    MAX_TOKEN_OUTPUT_LENGTH: 4096,
+    MAX_CONTEXT_LENGTH: 4096
   }
 }

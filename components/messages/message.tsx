@@ -126,7 +126,7 @@ export const Message: FC<MessageProps> = ({
       input.focus()
       input.setSelectionRange(input.value.length, input.value.length)
     }
-  }, [isEditing])
+  }, [message.content, isEditing])
 
   const MODEL_DATA = [
     ...models.map(model => ({

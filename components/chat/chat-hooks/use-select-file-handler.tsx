@@ -2,7 +2,7 @@ import { ChatbotUIContext } from "@/context/context"
 import { createDocXFile, createFile } from "@/db/files"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import mammoth from "mammoth"
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useState, useCallback } from "react"
 import { toast } from "sonner"
 
 export const ACCEPTED_FILE_TYPES = [
@@ -13,6 +13,9 @@ export const ACCEPTED_FILE_TYPES = [
   "application/pdf",
   "text/plain"
 ].join(",")
+
+const DOCX_MIME_TYPE =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 export const useSelectFileHandler = () => {
   const {
@@ -26,24 +29,28 @@ export const useSelectFileHandler = () => {
     setUseRetrieval
   } = useContext(ChatbotUIContext)
 
-  const [filesToAccept, setFilesToAccept] = useState(ACCEPTED_FILE_TYPES)
+  const [filesToAccept, setFilesToAccept] = useState<string>("")
 
-  useEffect(() => {
-    handleFilesToAccept()
-  }, [chatSettings?.model])
+  const handleFilesToAccept = useCallback(() => {
+    const acceptTypes = []
 
-  const handleFilesToAccept = () => {
     const model = chatSettings?.model
     const FULL_MODEL = LLM_LIST.find(llm => llm.modelId === model)
 
     if (!FULL_MODEL) return
 
-    setFilesToAccept(
+    acceptTypes.push(
       FULL_MODEL.imageInput
         ? `${ACCEPTED_FILE_TYPES},image/*`
         : ACCEPTED_FILE_TYPES
     )
-  }
+
+    setFilesToAccept(acceptTypes.join(","))
+  }, [chatSettings?.model])
+
+  useEffect(() => {
+    handleFilesToAccept()
+  }, [handleFilesToAccept])
 
   const handleSelectDeviceFile = async (file: File) => {
     if (!profile || !selectedWorkspace || !chatSettings) return
@@ -61,12 +68,7 @@ export const useSelectFileHandler = () => {
       } else if (ACCEPTED_FILE_TYPES.split(",").includes(file.type)) {
         if (simplifiedFileType.includes("vnd.adobe.pdf")) {
           simplifiedFileType = "pdf"
-        } else if (
-          simplifiedFileType.includes(
-            "vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-              "docx"
-          )
-        ) {
+        } else if (file.type === DOCX_MIME_TYPE) {
           simplifiedFileType = "docx"
         }
 
@@ -81,12 +83,7 @@ export const useSelectFileHandler = () => {
         ])
 
         // Handle docx files
-        if (
-          file.type.includes(
-            "vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-              "docx"
-          )
-        ) {
+        if (file.type === DOCX_MIME_TYPE) {
           const arrayBuffer = await file.arrayBuffer()
           const result = await mammoth.extractRawText({
             arrayBuffer

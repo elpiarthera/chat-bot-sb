@@ -23,7 +23,7 @@ import {
 } from "@tabler/icons-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { FC, useCallback, useContext, useRef, useState } from "react"
+import { FC, useCallback, useContext, useRef, useState, useMemo } from "react"
 import { toast } from "sonner"
 import { SIDEBAR_ICON_SIZE } from "../sidebar/sidebar-switcher"
 import { Button } from "../ui/button"
@@ -227,22 +227,16 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
     setIsOpen(false)
   }
 
-  const debounce = (func: (...args: any[]) => void, wait: number) => {
-    let timeout: NodeJS.Timeout | null
-
+  const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout | null = null
     return (...args: any[]) => {
-      const later = () => {
-        if (timeout) clearTimeout(timeout)
-        func(...args)
-      }
-
       if (timeout) clearTimeout(timeout)
-      timeout = setTimeout(later, wait)
+      timeout = setTimeout(() => func(...args), wait)
     }
   }
 
-  const checkUsernameAvailability = useCallback(
-    debounce(async (username: string) => {
+  const checkUsername = useCallback(
+    async (username: string) => {
       if (!username) return
 
       if (username.length < PROFILE_USERNAME_MIN) {
@@ -266,23 +260,43 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
 
       setLoadingUsername(true)
 
-      const response = await fetch(`/api/username/available`, {
-        method: "POST",
-        body: JSON.stringify({ username })
-      })
+      try {
+        const response = await fetch(`/api/username/available`, {
+          method: "POST",
+          body: JSON.stringify({ username })
+        })
 
-      const data = await response.json()
-      const isAvailable = data.isAvailable
+        const data = await response.json()
+        const isAvailable = data.isAvailable
 
-      setUsernameAvailable(isAvailable)
+        setUsernameAvailable(isAvailable)
 
-      if (username === profile?.username) {
-        setUsernameAvailable(true)
+        if (username === profile?.username) {
+          setUsernameAvailable(true)
+        }
+      } catch (error) {
+        console.error("Error checking username:", error)
+        toast.error("Failed to check username availability")
+        setUsernameAvailable(false)
+      } finally {
+        setLoadingUsername(false)
       }
+    },
+    [profile?.username, setUsernameAvailable, setLoadingUsername]
+  )
 
-      setLoadingUsername(false)
-    }, 500),
-    []
+  const debouncedCheckUsername = useMemo(
+    () => debounce((username: string) => checkUsername(username), 500),
+    [checkUsername]
+  )
+
+  const handleUsernameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newUsername = e.target.value
+      setUsername(newUsername)
+      debouncedCheckUsername(newUsername)
+    },
+    [setUsername, debouncedCheckUsername]
   )
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -360,10 +374,7 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
                     className="pr-10"
                     placeholder="Username..."
                     value={username}
-                    onChange={e => {
-                      setUsername(e.target.value)
-                      checkUsernameAvailability(e.target.value)
-                    }}
+                    onChange={handleUsernameChange}
                     minLength={PROFILE_USERNAME_MIN}
                     maxLength={PROFILE_USERNAME_MAX}
                   />

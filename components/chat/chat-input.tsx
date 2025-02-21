@@ -9,7 +9,7 @@ import {
   IconSend
 } from "@tabler/icons-react"
 import Image from "next/image"
-import { FC, useContext, useEffect, useRef, useState } from "react"
+import { FC, useContext, useEffect, useRef, useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { Input } from "../ui/input"
@@ -75,11 +75,12 @@ export const ChatInput: FC<ChatInputProps> = ({}) => {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Use the imported handleFocusChatInput in useEffect
   useEffect(() => {
     setTimeout(() => {
       handleFocusChatInput()
     }, 200) // FIX: hacky
-  }, [selectedPreset, selectedAssistant])
+  }, [selectedPreset, selectedAssistant, handleFocusChatInput])
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (!isTyping && event.key === "Enter" && !event.shiftKey) {

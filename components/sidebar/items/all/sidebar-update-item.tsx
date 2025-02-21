@@ -92,6 +92,8 @@ interface SidebarUpdateItemProps {
   children: React.ReactNode
   renderInputs: (renderState: any) => JSX.Element
   updateState: any
+  isOpen: boolean
+  onOpenChange: (isOpen: boolean) => void
 }
 
 export const SidebarUpdateItem: FC<SidebarUpdateItemProps> = ({
@@ -100,7 +102,9 @@ export const SidebarUpdateItem: FC<SidebarUpdateItemProps> = ({
   children,
   renderInputs,
   updateState,
-  isTyping
+  isTyping,
+  isOpen,
+  onOpenChange
 }) => {
   const {
     workspaces,
@@ -118,7 +122,6 @@ export const SidebarUpdateItem: FC<SidebarUpdateItemProps> = ({
 
   const buttonRef = useRef<HTMLButtonElement>(null)
 
-  const [isOpen, setIsOpen] = useState(false)
   const [startingWorkspaces, setStartingWorkspaces] = useState<
     Tables<"workspaces">[]
   >([])
@@ -152,83 +155,7 @@ export const SidebarUpdateItem: FC<SidebarUpdateItemProps> = ({
     Tables<"tools">[]
   >([])
 
-  useEffect(() => {
-    if (isOpen) {
-      const fetchData = async () => {
-        if (workspaces.length > 1) {
-          const workspaces = await fetchSelectedWorkspaces()
-          setStartingWorkspaces(workspaces)
-          setSelectedWorkspaces(workspaces)
-        }
-
-        const fetchDataFunction = fetchDataFunctions[contentType]
-        if (!fetchDataFunction) return
-        await fetchDataFunction(item.id)
-      }
-
-      fetchData()
-    }
-  }, [isOpen])
-
-  const renderState = {
-    chats: null,
-    presets: null,
-    prompts: null,
-    files: null,
-    collections: {
-      startingCollectionFiles,
-      setStartingCollectionFiles,
-      selectedCollectionFiles,
-      setSelectedCollectionFiles
-    },
-    assistants: {
-      startingAssistantFiles,
-      setStartingAssistantFiles,
-      startingAssistantCollections,
-      setStartingAssistantCollections,
-      startingAssistantTools,
-      setStartingAssistantTools,
-      selectedAssistantFiles,
-      setSelectedAssistantFiles,
-      selectedAssistantCollections,
-      setSelectedAssistantCollections,
-      selectedAssistantTools,
-      setSelectedAssistantTools
-    },
-    tools: null,
-    models: null
-  }
-
-  const fetchDataFunctions = {
-    chats: null,
-    presets: null,
-    prompts: null,
-    files: null,
-    collections: async (collectionId: string) => {
-      const collectionFiles =
-        await getCollectionFilesByCollectionId(collectionId)
-      setStartingCollectionFiles(collectionFiles.files)
-      setSelectedCollectionFiles([])
-    },
-    assistants: async (assistantId: string) => {
-      const assistantFiles = await getAssistantFilesByAssistantId(assistantId)
-      setStartingAssistantFiles(assistantFiles.files)
-
-      const assistantCollections =
-        await getAssistantCollectionsByAssistantId(assistantId)
-      setStartingAssistantCollections(assistantCollections.collections)
-
-      const assistantTools = await getAssistantToolsByAssistantId(assistantId)
-      setStartingAssistantTools(assistantTools.tools)
-
-      setSelectedAssistantFiles([])
-      setSelectedAssistantCollections([])
-      setSelectedAssistantTools([])
-    },
-    tools: null,
-    models: null
-  }
-
+  // Move these function declarations before useEffect
   const fetchWorkpaceFunctions = {
     chats: null,
     presets: async (presetId: string) => {
@@ -263,12 +190,105 @@ export const SidebarUpdateItem: FC<SidebarUpdateItemProps> = ({
 
   const fetchSelectedWorkspaces = async () => {
     const fetchFunction = fetchWorkpaceFunctions[contentType]
-
     if (!fetchFunction) return []
-
     const workspaces = await fetchFunction(item.id)
-
     return workspaces
+  }
+
+  // Move these function declarations before useEffect
+  const fetchDataFunctions = {
+    chats: null,
+    presets: null,
+    prompts: null,
+    files: null,
+    collections: async (collectionId: string) => {
+      const collectionFiles =
+        await getCollectionFilesByCollectionId(collectionId)
+      setStartingCollectionFiles(collectionFiles.files)
+      setSelectedCollectionFiles([])
+    },
+    assistants: async (assistantId: string) => {
+      const assistantFiles = await getAssistantFilesByAssistantId(assistantId)
+      setStartingAssistantFiles(assistantFiles.files)
+
+      const assistantCollections =
+        await getAssistantCollectionsByAssistantId(assistantId)
+      setStartingAssistantCollections(assistantCollections.collections)
+
+      const assistantTools = await getAssistantToolsByAssistantId(assistantId)
+      setStartingAssistantTools(assistantTools.tools)
+
+      setSelectedAssistantFiles([])
+      setSelectedAssistantCollections([])
+      setSelectedAssistantTools([])
+    },
+    tools: null,
+    models: null
+  } as const
+
+  // Type guard to ensure contentType is valid
+  const isValidContentType = (
+    type: string
+  ): type is keyof typeof fetchDataFunctions => {
+    return type in fetchDataFunctions
+  }
+
+  // Now use the functions in useEffect
+  useEffect(() => {
+    if (isOpen) {
+      const fetchData = async () => {
+        if (workspaces.length > 1) {
+          const workspacesData = await fetchSelectedWorkspaces()
+          setStartingWorkspaces(workspacesData)
+          setSelectedWorkspaces(workspacesData)
+        }
+
+        if (isValidContentType(contentType)) {
+          const fetchDataFunction = fetchDataFunctions[contentType]
+          if (!fetchDataFunction) return
+          await fetchDataFunction(item.id)
+        }
+      }
+
+      fetchData()
+    }
+  }, [
+    isOpen,
+    workspaces.length,
+    fetchSelectedWorkspaces,
+    contentType,
+    item.id,
+    setStartingWorkspaces,
+    setSelectedWorkspaces
+  ])
+
+  const renderState = {
+    chats: null,
+    presets: null,
+    prompts: null,
+    files: null,
+    collections: {
+      startingCollectionFiles,
+      setStartingCollectionFiles,
+      selectedCollectionFiles,
+      setSelectedCollectionFiles
+    },
+    assistants: {
+      startingAssistantFiles,
+      setStartingAssistantFiles,
+      startingAssistantCollections,
+      setStartingAssistantCollections,
+      startingAssistantTools,
+      setStartingAssistantTools,
+      selectedAssistantFiles,
+      setSelectedAssistantFiles,
+      selectedAssistantCollections,
+      setSelectedAssistantCollections,
+      selectedAssistantTools,
+      setSelectedAssistantTools
+    },
+    tools: null,
+    models: null
   }
 
   const handleWorkspaceUpdates = async (
@@ -598,7 +618,7 @@ export const SidebarUpdateItem: FC<SidebarUpdateItemProps> = ({
         )
       )
 
-      setIsOpen(false)
+      onOpenChange(false)
 
       toast.success(`${contentType.slice(0, -1)} updated successfully`)
     } catch (error) {
@@ -630,7 +650,7 @@ export const SidebarUpdateItem: FC<SidebarUpdateItemProps> = ({
   }
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
 
       <SheetContent
@@ -665,7 +685,7 @@ export const SidebarUpdateItem: FC<SidebarUpdateItemProps> = ({
           <SidebarDeleteItem item={item} contentType={contentType} />
 
           <div className="flex grow justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
 

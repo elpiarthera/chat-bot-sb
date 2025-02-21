@@ -2,7 +2,7 @@
 
 import { ChatbotUIContext } from "@/context/context"
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
-import { ChatSettings } from "@/types"
+import { ChatSettings, LLMID } from "@/types"
 import { IconInfoCircle } from "@tabler/icons-react"
 import { FC, useContext } from "react"
 import { ModelSelect } from "../models/model-select"
@@ -44,9 +44,11 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
 
         <ModelSelect
           selectedModelId={chatSettings.model}
-          onSelectModel={model => {
+          onSelectModel={(model: LLMID) => {
             onChangeChatSettings({ ...chatSettings, model })
           }}
+          chatSettings={chatSettings}
+          onChangeChatSettings={onChangeChatSettings}
         />
       </div>
 
@@ -104,15 +106,18 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
     model => model.model_id === chatSettings.model
   )
 
-  function findOpenRouterModel(modelId: string) {
+  const findOpenRouterModel = (modelId: string) => {
     return availableOpenRouterModels.find(model => model.modelId === modelId)
   }
 
   const MODEL_LIMITS = CHAT_SETTING_LIMITS[chatSettings.model] || {
     MIN_TEMPERATURE: 0,
     MAX_TEMPERATURE: 1,
-    MAX_CONTEXT_LENGTH:
-      findOpenRouterModel(chatSettings.model)?.maxContext || 4096
+    MAX_CONTEXT_LENGTH: isCustomModel
+      ? models.find(model => model.model_id === chatSettings.model)
+          ?.context_length
+      : findOpenRouterModel(chatSettings.model)?.maxContext || 4096,
+    MAX_TOKEN_OUTPUT_LENGTH: 4096
   }
 
   return (
@@ -120,8 +125,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
       <div className="space-y-3">
         <Label className="flex items-center space-x-1">
           <div>Temperature:</div>
-
-          <div>{chatSettings.temperature}</div>
+          <div>{chatSettings.temperature.toFixed(2)}</div>
         </Label>
 
         <Slider
@@ -141,7 +145,6 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
       <div className="mt-6 space-y-3">
         <Label className="flex items-center space-x-1">
           <div>Context Length:</div>
-
           <div>{chatSettings.contextLength}</div>
         </Label>
 
@@ -154,12 +157,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
             })
           }}
           min={0}
-          max={
-            isCustomModel
-              ? models.find(model => model.model_id === chatSettings.model)
-                  ?.context_length
-              : MODEL_LIMITS.MAX_CONTEXT_LENGTH
-          }
+          max={MODEL_LIMITS.MAX_CONTEXT_LENGTH}
           step={1}
         />
       </div>

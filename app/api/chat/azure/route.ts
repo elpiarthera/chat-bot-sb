@@ -1,6 +1,6 @@
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatAPIPayload } from "@/types"
-import { OpenAIStream, StreamingTextResponse } from "ai"
+import { AzureOpenAIStream, StreamingTextResponse } from "ai"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
 
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
       stream: true
     })
 
-    const stream = OpenAIStream(response)
+    const stream = AzureOpenAIStream(response)
 
     return new StreamingTextResponse(stream)
   } catch (error: any) {

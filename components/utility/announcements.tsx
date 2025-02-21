@@ -6,62 +6,92 @@ import {
 } from "@/components/ui/popover"
 import { Announcement } from "@/types/announcement"
 import { IconExternalLink, IconSpeakerphone } from "@tabler/icons-react"
-import { FC, useEffect, useState } from "react"
+import { FC, useEffect, useState, useCallback } from "react"
 import { SIDEBAR_ICON_SIZE } from "../sidebar/sidebar-switcher"
+
+// Define initial announcements
+const INITIAL_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: "1",
+    title: "Welcome to My Team AI alpha version!",
+    content: "Check out our latest features and improvements.",
+    date: "2025-02-21",
+    read: false,
+    link: "https://example.com/updates"
+  }
+  // Add more announcements as needed
+]
 
 interface AnnouncementsProps {}
 
 export const Announcements: FC<AnnouncementsProps> = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [currentAnnouncement, setCurrentAnnouncement] =
+    useState<Announcement | null>(null)
 
   useEffect(() => {
     // Load announcements from local storage
     const storedAnnouncements = localStorage.getItem("announcements")
     let parsedAnnouncements: Announcement[] = []
 
-    if (storedAnnouncements) {
-      parsedAnnouncements = JSON.parse(storedAnnouncements)
-    }
-
-    // Filter out announcements that are no longer in state
-    const validAnnouncements = announcements.filter((a: Announcement) =>
-      parsedAnnouncements.find(storedA => storedA.id === a.id)
-    )
-
-    // Add new announcements to the list
-    const newAnnouncements = announcements.filter(
-      (a: Announcement) =>
-        !parsedAnnouncements.find(storedA => storedA.id === a.id)
-    )
-
-    // Combine valid and new announcements
-    const combinedAnnouncements = [...validAnnouncements, ...newAnnouncements]
-
-    // Mark announcements as read if they are marked as read in local storage
-    const updatedAnnouncements = combinedAnnouncements.map(
-      (a: Announcement) => {
-        const storedAnnouncement = parsedAnnouncements.find(
-          (storedA: Announcement) => storedA.id === a.id
-        )
-        return storedAnnouncement?.read ? { ...a, read: true } : a
+    try {
+      if (storedAnnouncements) {
+        parsedAnnouncements = JSON.parse(storedAnnouncements)
       }
-    )
 
-    // Update state and local storage
-    setAnnouncements(updatedAnnouncements)
-    localStorage.setItem("announcements", JSON.stringify(updatedAnnouncements))
-  }, [])
+      // Filter out announcements that are no longer in state
+      const validAnnouncements = INITIAL_ANNOUNCEMENTS.filter(
+        (a: Announcement) =>
+          parsedAnnouncements.find(storedA => storedA.id === a.id)
+      )
+
+      // Add new announcements to the list
+      const newAnnouncements = INITIAL_ANNOUNCEMENTS.filter(
+        (a: Announcement) =>
+          !parsedAnnouncements.find(storedA => storedA.id === a.id)
+      )
+
+      // Combine valid and new announcements
+      const combinedAnnouncements = [...validAnnouncements, ...newAnnouncements]
+
+      // Mark announcements as read if they are marked as read in local storage
+      const updatedAnnouncements = combinedAnnouncements.map(
+        (a: Announcement) => {
+          const storedAnnouncement = parsedAnnouncements.find(
+            storedA => storedA.id === a.id
+          )
+          return storedAnnouncement?.read ? { ...a, read: true } : a
+        }
+      )
+
+      // Update state and local storage
+      setAnnouncements(updatedAnnouncements)
+      localStorage.setItem(
+        "announcements",
+        JSON.stringify(updatedAnnouncements)
+      )
+    } catch (error) {
+      console.error("Error loading announcements:", error)
+      setAnnouncements(INITIAL_ANNOUNCEMENTS) // Fallback to initial announcements
+    }
+  }, []) // Empty dependency array since this should only run once on mount
+
+  useEffect(() => {
+    if (announcements && announcements.length > 0) {
+      setCurrentAnnouncement(announcements[0])
+    }
+  }, [announcements])
 
   const unreadCount = announcements.filter(a => !a.read).length
 
-  const markAsRead = (id: string) => {
-    // Mark announcement as read in local storage and state
-    const updatedAnnouncements = announcements.map(a =>
-      a.id === id ? { ...a, read: true } : a
-    )
-    setAnnouncements(updatedAnnouncements)
-    localStorage.setItem("announcements", JSON.stringify(updatedAnnouncements))
-  }
+  // Handle marking announcements as read
+  const handleMarkAsRead = useCallback((id: string) => {
+    setAnnouncements(prev => {
+      const updated = prev.map(a => (a.id === id ? { ...a, read: true } : a))
+      localStorage.setItem("announcements", JSON.stringify(updated))
+      return updated
+    })
+  }, [])
 
   const markAllAsRead = () => {
     // Mark all announcements as read in local storage and state
@@ -118,7 +148,7 @@ export const Announcements: FC<AnnouncementsProps> = () => {
                         <Button
                           className="h-[26px] text-xs"
                           size="sm"
-                          onClick={() => markAsRead(a.id)}
+                          onClick={() => handleMarkAsRead(a.id)}
                         >
                           Mark as Read
                         </Button>
