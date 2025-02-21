@@ -45,7 +45,11 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
         CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_CONTEXT_LENGTH || 4096
       )
     })
-  }, [chatSettings?.model])
+  }, [chatSettings, setChatSettings, chatSettings?.model])
+
+  useEffect(() => {
+    // Include all dependencies
+  }, [chatSettings, setChatSettings])
 
   if (!chatSettings) return null
 

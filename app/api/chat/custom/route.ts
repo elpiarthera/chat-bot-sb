@@ -1,10 +1,11 @@
 import { Database } from "@/supabase/types"
 import { ChatSettings } from "@/types"
 import { createClient } from "@supabase/supabase-js"
-import { OpenAIStream, StreamingTextResponse } from "ai"
 import { ServerRuntime } from "next"
 import OpenAI from "openai"
-import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
+import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
+import { createStream } from "@/lib/server/streaming-helpers"
 
 export const runtime: ServerRuntime = "edge"
 
@@ -37,16 +38,20 @@ export async function POST(request: Request) {
       baseURL: customModel.base_url
     })
 
+    // Convert messages to proper format
+    const formattedMessages = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    })) as ChatCompletionMessageParam[]
+
     const response = await custom.chat.completions.create({
-      model: chatSettings.model as ChatCompletionCreateParamsBase["model"],
-      messages: messages as ChatCompletionCreateParamsBase["messages"],
+      model: chatSettings.model,
+      messages: formattedMessages,
       temperature: chatSettings.temperature,
       stream: true
     })
 
-    const stream = OpenAIStream(response)
-
-    return new StreamingTextResponse(stream)
+    return createStream(response)
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500

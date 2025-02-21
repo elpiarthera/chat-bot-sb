@@ -1,8 +1,8 @@
+import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { openapiToFunctions } from "@/lib/openapi-conversion"
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { Tables } from "@/supabase/types"
 import { ChatSettings } from "@/types"
-import { OpenAIStream, StreamingTextResponse } from "ai"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
 
@@ -198,15 +198,54 @@ export async function POST(request: Request) {
       }
     }
 
-    const secondResponse = await openai.chat.completions.create({
-      model: chatSettings.model as ChatCompletionCreateParamsBase["model"],
-      messages,
-      stream: true
+    const secondResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${profile.groq_api_key}`
+        },
+        body: JSON.stringify({
+          model: chatSettings.model,
+          messages: messages,
+          temperature: chatSettings.temperature,
+          max_tokens:
+            CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_TOKEN_OUTPUT_LENGTH,
+          stream: true
+        })
+      }
+    )
+
+    // Check if response body exists
+    if (!secondResponse.body) {
+      throw new Error("Response body is null")
+    }
+
+    // Transform the response into a readable stream
+    const reader = secondResponse.body.getReader()
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            controller.enqueue(value)
+          }
+        } finally {
+          controller.close()
+          reader.releaseLock()
+        }
+      }
     })
 
-    const stream = OpenAIStream(secondResponse)
-
-    return new StreamingTextResponse(stream)
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive"
+      }
+    })
   } catch (error: any) {
     console.error(error)
     const errorMessage = error.error?.message || "An unexpected error occurred"

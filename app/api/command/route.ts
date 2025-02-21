@@ -1,6 +1,7 @@
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import OpenAI from "openai"
+import { LLMID } from "@/types"
 
 export const runtime = "edge"
 
@@ -15,13 +16,15 @@ export async function POST(request: Request) {
 
     checkApiKey(profile.openai_api_key, "OpenAI")
 
+    const model = "gpt-4-1106-preview" as LLMID
+
     const openai = new OpenAI({
       apiKey: profile.openai_api_key || "",
       organization: profile.openai_organization_id
     })
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4-1106-preview",
+      model,
       messages: [
         {
           role: "system",
@@ -33,8 +36,7 @@ export async function POST(request: Request) {
         }
       ],
       temperature: 0,
-      max_tokens:
-        CHAT_SETTING_LIMITS["gpt-4-turbo-preview"].MAX_TOKEN_OUTPUT_LENGTH
+      max_tokens: 4096
       //   response_format: { type: "json_object" }
       //   stream: true
     })

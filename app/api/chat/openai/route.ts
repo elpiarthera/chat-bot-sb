@@ -1,6 +1,6 @@
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
-import { ChatSettings } from "@/types"
-import { OpenAIStream, StreamingTextResponse } from "ai"
+import { createStream } from "@/lib/server/streaming-helpers"
+import { ChatAPIPayload } from "@/types"
 import { ServerRuntime } from "next"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
@@ -9,10 +9,7 @@ export const runtime: ServerRuntime = "edge"
 
 export async function POST(request: Request) {
   const json = await request.json()
-  const { chatSettings, messages } = json as {
-    chatSettings: ChatSettings
-    messages: any[]
-  }
+  const { chatSettings, messages } = json as ChatAPIPayload
 
   try {
     const profile = await getServerProfile()
@@ -36,11 +33,9 @@ export async function POST(request: Request) {
       stream: true
     })
 
-    const stream = OpenAIStream(response)
-
-    return new StreamingTextResponse(stream)
+    return createStream(response)
   } catch (error: any) {
-    let errorMessage = error.message || "An unexpected error occurred"
+    let errorMessage = error.error?.message || "An unexpected error occurred"
     const errorCode = error.status || 500
 
     if (errorMessage.toLowerCase().includes("api key not found")) {

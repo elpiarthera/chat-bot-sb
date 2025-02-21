@@ -1,8 +1,8 @@
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatAPIPayload } from "@/types"
-import { AzureOpenAIStream, StreamingTextResponse } from "ai"
 import OpenAI from "openai"
-import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
+import { ChatCompletionMessageParam } from "openai/resources/chat/completions"
+import { createStream } from "@/lib/server/streaming-helpers"
 
 export const runtime = "edge"
 
@@ -12,7 +12,6 @@ export async function POST(request: Request) {
 
   try {
     const profile = await getServerProfile()
-
     checkApiKey(profile.azure_openai_api_key, "Azure OpenAI")
 
     const ENDPOINT = profile.azure_openai_endpoint
@@ -38,30 +37,31 @@ export async function POST(request: Request) {
     if (!ENDPOINT || !KEY || !DEPLOYMENT_ID) {
       return new Response(
         JSON.stringify({ message: "Azure resources not found" }),
-        {
-          status: 400
-        }
+        { status: 400 }
       )
     }
 
-    const azureOpenai = new OpenAI({
+    const openai = new OpenAI({
       apiKey: KEY,
       baseURL: `${ENDPOINT}/openai/deployments/${DEPLOYMENT_ID}`,
-      defaultQuery: { "api-version": "2023-12-01-preview" },
-      defaultHeaders: { "api-key": KEY }
+      defaultQuery: { "api-version": "2023-12-01-preview" }
     })
 
-    const response = await azureOpenai.chat.completions.create({
-      model: DEPLOYMENT_ID as ChatCompletionCreateParamsBase["model"],
-      messages: messages as ChatCompletionCreateParamsBase["messages"],
+    const formattedMessages = messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    })) as ChatCompletionMessageParam[]
+
+    const response = await openai.chat.completions.create({
+      model: DEPLOYMENT_ID,
+      messages: formattedMessages,
       temperature: chatSettings.temperature,
-      max_tokens: chatSettings.model === "gpt-4-vision-preview" ? 4096 : null, // TODO: Fix
+      max_tokens:
+        chatSettings.model === "gpt-4-vision-preview" ? 4096 : undefined,
       stream: true
     })
 
-    const stream = AzureOpenAIStream(response)
-
-    return new StreamingTextResponse(stream)
+    return createStream(response)
   } catch (error: any) {
     const errorMessage = error.error?.message || "An unexpected error occurred"
     const errorCode = error.status || 500

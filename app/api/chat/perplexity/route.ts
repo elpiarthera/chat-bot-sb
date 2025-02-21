@@ -1,7 +1,8 @@
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
-import { OpenAIStream, StreamingTextResponse } from "ai"
+import { createStream } from "@/lib/server/streaming-helpers"
 import OpenAI from "openai"
+import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
 
 export const runtime = "edge"
 
@@ -17,21 +18,19 @@ export async function POST(request: Request) {
 
     checkApiKey(profile.perplexity_api_key, "Perplexity")
 
-    // Perplexity is compatible the OpenAI SDK
-    const perplexity = new OpenAI({
+    const openai = new OpenAI({
       apiKey: profile.perplexity_api_key || "",
-      baseURL: "https://api.perplexity.ai/"
+      baseURL: "https://api.perplexity.ai"
     })
 
-    const response = await perplexity.chat.completions.create({
-      model: chatSettings.model,
-      messages,
+    const response = await openai.chat.completions.create({
+      model: chatSettings.model as ChatCompletionCreateParamsBase["model"],
+      messages: messages as ChatCompletionCreateParamsBase["messages"],
+      temperature: chatSettings.temperature,
       stream: true
     })
 
-    const stream = OpenAIStream(response)
-
-    return new StreamingTextResponse(stream)
+    return createStream(response)
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500

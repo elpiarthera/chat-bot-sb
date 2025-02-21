@@ -10,7 +10,7 @@ import {
   IconCircleXFilled,
   IconLoader2
 } from "@tabler/icons-react"
-import { FC, useCallback, useState } from "react"
+import { FC, useCallback, useState, useMemo } from "react"
 import { LimitDisplay } from "../ui/limit-display"
 import { toast } from "sonner"
 
@@ -41,7 +41,7 @@ export const ProfileStep: FC<ProfileStepProps> = ({
     }
   }
 
-  const checkUsernameAvailability = useCallback(
+  const handleUsernameCheck = useCallback(
     async (username: string) => {
       if (!username) return
 
@@ -84,9 +84,9 @@ export const ProfileStep: FC<ProfileStepProps> = ({
     [onUsernameAvailableChange]
   )
 
-  const debouncedCheck = useCallback(
-    debounce((username: string) => checkUsernameAvailability(username), 500),
-    [checkUsernameAvailability]
+  const debouncedCheck = useMemo(
+    () => debounce((username: string) => handleUsernameCheck(username), 500),
+    [handleUsernameCheck]
   )
 
   return (

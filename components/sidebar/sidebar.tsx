@@ -64,7 +64,7 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
         <div className="flex items-center border-b-2 pb-2">
           <WorkspaceSwitcher />
 
-          <WorkspaceSettings />
+          <WorkspaceSettings isOpen={false} onOpenChange={() => {}} />
         </div>
 
         {(() => {
