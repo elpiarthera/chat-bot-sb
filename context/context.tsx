@@ -12,70 +12,129 @@ import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { Dispatch, SetStateAction, createContext } from "react"
 
+interface ChatState {
+  messages: ChatMessage[]
+  settings: ChatSettings | null
+  files: ChatFile[]
+  isGenerating: boolean
+}
+
+/**
+ * Main context for the Chatbot UI application.
+ * Provides state management for all major features including:
+ * - User profile and authentication
+ * - Chat management and messaging
+ * - File and media handling
+ * - Model configuration and settings
+ * - Workspace organization
+ */
 interface ChatbotUIContext {
-  // PROFILE STORE
+  /** Current user profile information. Null when not authenticated */
   profile: Tables<"profiles"> | null
   setProfile: Dispatch<SetStateAction<Tables<"profiles"> | null>>
 
-  // ITEMS STORE
+  /** List of all assistants available to the user */
   assistants: Tables<"assistants">[]
   setAssistants: Dispatch<SetStateAction<Tables<"assistants">[]>>
+
+  /** User's collections for organizing content */
   collections: Tables<"collections">[]
   setCollections: Dispatch<SetStateAction<Tables<"collections">[]>>
+
+  /** All chat conversations */
   chats: Tables<"chats">[]
   setChats: Dispatch<SetStateAction<Tables<"chats">[]>>
+
+  /** Uploaded files in the system */
   files: Tables<"files">[]
   setFiles: Dispatch<SetStateAction<Tables<"files">[]>>
+
+  /** Organizational folders */
   folders: Tables<"folders">[]
   setFolders: Dispatch<SetStateAction<Tables<"folders">[]>>
+
+  /** Custom model configurations */
   models: Tables<"models">[]
   setModels: Dispatch<SetStateAction<Tables<"models">[]>>
+
+  /** Saved chat presets */
   presets: Tables<"presets">[]
   setPresets: Dispatch<SetStateAction<Tables<"presets">[]>>
+
+  /** Saved prompt templates */
   prompts: Tables<"prompts">[]
   setPrompts: Dispatch<SetStateAction<Tables<"prompts">[]>>
+
+  /** Available tools for chat interactions */
   tools: Tables<"tools">[]
   setTools: Dispatch<SetStateAction<Tables<"tools">[]>>
+
+  /** User workspaces */
   workspaces: Tables<"workspaces">[]
   setWorkspaces: Dispatch<SetStateAction<Tables<"workspaces">[]>>
 
   // MODELS STORE
+  /** Mapping of model names to environment keys */
   envKeyMap: Record<string, VALID_ENV_KEYS>
   setEnvKeyMap: Dispatch<SetStateAction<Record<string, VALID_ENV_KEYS>>>
+
+  /** Models available through hosted services */
   availableHostedModels: LLM[]
   setAvailableHostedModels: Dispatch<SetStateAction<LLM[]>>
+
+  /** Locally available models */
   availableLocalModels: LLM[]
   setAvailableLocalModels: Dispatch<SetStateAction<LLM[]>>
+
+  /** Models available through OpenRouter */
   availableOpenRouterModels: OpenRouterLLM[]
   setAvailableOpenRouterModels: Dispatch<SetStateAction<OpenRouterLLM[]>>
 
   // WORKSPACE STORE
+  /** Currently selected workspace */
   selectedWorkspace: Tables<"workspaces"> | null
   setSelectedWorkspace: Dispatch<SetStateAction<Tables<"workspaces"> | null>>
+
+  /** Images associated with workspaces */
   workspaceImages: WorkspaceImage[]
   setWorkspaceImages: Dispatch<SetStateAction<WorkspaceImage[]>>
 
   // PRESET STORE
+  /** Currently selected chat preset */
   selectedPreset: Tables<"presets"> | null
   setSelectedPreset: Dispatch<SetStateAction<Tables<"presets"> | null>>
 
   // ASSISTANT STORE
+  /** Currently selected assistant */
   selectedAssistant: Tables<"assistants"> | null
   setSelectedAssistant: Dispatch<SetStateAction<Tables<"assistants"> | null>>
+
+  /** Images associated with assistants */
   assistantImages: AssistantImage[]
   setAssistantImages: Dispatch<SetStateAction<AssistantImage[]>>
-  openaiAssistants: any[]
+
+  /** OpenAI-specific assistants */
+  openaiAssistants: any[] // TODO: Type this properly
   setOpenaiAssistants: Dispatch<SetStateAction<any[]>>
 
   // PASSIVE CHAT STORE
+  /** Current user input in chat */
   userInput: string
   setUserInput: Dispatch<SetStateAction<string>>
+
+  /** Messages in the current chat */
   chatMessages: ChatMessage[]
   setChatMessages: Dispatch<SetStateAction<ChatMessage[]>>
+
+  /** Settings for the current chat */
   chatSettings: ChatSettings | null
-  setChatSettings: Dispatch<SetStateAction<ChatSettings>>
+  setChatSettings: Dispatch<SetStateAction<ChatSettings | null>>
+
+  /** Currently selected chat */
   selectedChat: Tables<"chats"> | null
   setSelectedChat: Dispatch<SetStateAction<Tables<"chats"> | null>>
+
+  /** File items associated with current chat */
   chatFileItems: Tables<"file_items">[]
   setChatFileItems: Dispatch<SetStateAction<Tables<"file_items">[]>>
 
@@ -136,6 +195,8 @@ interface ChatbotUIContext {
   setSelectedTools: Dispatch<SetStateAction<Tables<"tools">[]>>
   toolInUse: string
   setToolInUse: Dispatch<SetStateAction<string>>
+
+  chat: ChatState
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({
@@ -196,12 +257,12 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   // PASSIVE CHAT STORE
   userInput: "",
   setUserInput: () => {},
-  selectedChat: null,
-  setSelectedChat: () => {},
   chatMessages: [],
   setChatMessages: () => {},
   chatSettings: null,
   setChatSettings: () => {},
+  selectedChat: null,
+  setSelectedChat: () => {},
   chatFileItems: [],
   setChatFileItems: () => {},
 
@@ -261,5 +322,12 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   selectedTools: [],
   setSelectedTools: () => {},
   toolInUse: "none",
-  setToolInUse: () => {}
+  setToolInUse: () => {},
+
+  chat: {
+    messages: [],
+    settings: null,
+    files: [],
+    isGenerating: false
+  }
 })
