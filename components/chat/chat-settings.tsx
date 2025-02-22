@@ -14,13 +14,11 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   useHotkey("i", () => handleClick())
 
   const {
-    chat: {
-      settings,
-      setChat,
-      models,
-      availableLocalModels,
-      availableOpenRouterModels
-    }
+    chat,
+    setChat,
+    models,
+    availableLocalModels,
+    availableOpenRouterModels
   } = useContext(ChatbotUIContext)
 
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -32,34 +30,34 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   }
 
   useEffect(() => {
-    if (settings) {
+    if (chat.settings) {
       setChat(prevChat => ({
         ...prevChat,
-        chatSettings: settings
+        chatSettings: chat.settings
       }))
     }
-  }, [settings, setChat])
+  }, [chat.settings, setChat])
 
   useEffect(() => {
-    if (!settings) return
+    if (!chat.settings) return
 
     setChat(prevChat => ({
       ...prevChat,
       settings: {
-        ...settings,
+        ...chat.settings,
         temperature: Math.min(
-          settings.temperature,
-          CHAT_SETTING_LIMITS[settings.model]?.MAX_TEMPERATURE || 1
+          chat.settings.temperature,
+          CHAT_SETTING_LIMITS[chat.settings.model]?.MAX_TEMPERATURE || 1
         ),
         contextLength: Math.min(
-          settings.contextLength,
-          CHAT_SETTING_LIMITS[settings.model]?.MAX_CONTEXT_LENGTH || 4096
+          chat.settings.contextLength,
+          CHAT_SETTING_LIMITS[chat.settings.model]?.MAX_CONTEXT_LENGTH || 4096
         )
       }
     }))
-  }, [settings?.model])
+  }, [chat.settings?.model])
 
-  if (!settings) return null
+  if (!chat.settings) return null
 
   const allModels = [
     ...models.map(model => ({
@@ -74,36 +72,33 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
     ...availableOpenRouterModels
   ]
 
-  const fullModel = allModels.find(llm => llm.modelId === settings.model)
+  const fullModel = allModels.find(llm => llm.modelId === chat.settings.model)
 
   return (
     <Popover>
-      <PopoverTrigger>
+      <PopoverTrigger asChild>
         <Button
           ref={buttonRef}
-          className="flex items-center space-x-2"
+          className="flex size-[32px] items-center justify-center rounded-full p-0"
           variant="ghost"
         >
-          <div className="max-w-[120px] truncate text-lg sm:max-w-[300px] lg:max-w-[500px]">
-            {fullModel?.modelName || settings.model}
-          </div>
-
-          <IconAdjustmentsHorizontal size={28} />
+          <IconAdjustmentsHorizontal size={20} />
         </Button>
       </PopoverTrigger>
 
       <PopoverContent
-        className="bg-background border-input relative flex max-h-[calc(100vh-60px)] w-[300px] flex-col space-y-4 overflow-auto rounded-lg border-2 p-6 sm:w-[350px] md:w-[400px] lg:w-[500px] dark:border-none"
+        className="w-[300px] md:w-[400px] lg:w-[500px]"
+        side="bottom"
         align="end"
       >
         <ChatSettingsForm
-          chatSettings={settings}
-          onChangeChatSettings={newSettings =>
+          chatSettings={chat.settings}
+          onChangeChatSettings={settings => {
             setChat(prevChat => ({
               ...prevChat,
-              settings: newSettings
+              settings
             }))
-          }
+          }}
         />
       </PopoverContent>
     </Popover>

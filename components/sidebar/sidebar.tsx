@@ -51,7 +51,7 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
 
   return (
     <TabsContent
-      className="m-0 w-full space-y-2"
+      className="m-0 flex h-full flex-col"
       style={{
         // Sidebar - SidebarSwitcher
         minWidth: showSidebar ? `calc(${SIDEBAR_WIDTH}px - 60px)` : "0px",
@@ -60,10 +60,9 @@ export const Sidebar: FC<SidebarProps> = ({ contentType, showSidebar }) => {
       }}
       value={contentType}
     >
-      <div className="flex h-full flex-col p-3">
-        <div className="flex items-center border-b-2 pb-2">
+      <div className="flex h-full flex-col p-2">
+        <div className="flex items-center justify-between border-b pb-2">
           <WorkspaceSwitcher />
-
           <WorkspaceSettings />
         </div>
 

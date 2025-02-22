@@ -73,14 +73,14 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
       <div
         className={cn(
-          "duration-200 dark:border-none " + (showSidebar ? "border-r-2" : ""),
-          "fixed top-1/2 w-full max-w-lg -translate-y-1/2 p-6 shadow-lg sm:rounded-lg"
+          "bg-background fixed h-full",
+          showSidebar ? "border-r-2" : ""
         )}
         style={{
-          // Sidebar
           minWidth: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
           maxWidth: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
-          width: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px"
+          width: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
+          transition: "all 0.2s ease-in-out"
         }}
       >
         {showSidebar && (
@@ -93,18 +93,21 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
             }}
           >
             <SidebarSwitcher onContentTypeChange={setContentType} />
-
             <Sidebar contentType={contentType} showSidebar={showSidebar} />
           </Tabs>
         )}
       </div>
 
       <div
-        className="bg-muted/50 relative flex w-screen min-w-[90%] grow flex-col sm:min-w-fit"
+        className="relative flex w-full grow flex-col"
         onDrop={onFileDrop}
         onDragOver={onDragOver}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
+        style={{
+          marginLeft: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
+          transition: "margin-left 0.2s ease-in-out"
+        }}
       >
         {isDragging ? (
           <div className="flex h-full items-center justify-center bg-black/50 text-2xl text-white">
@@ -119,8 +122,8 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
             "absolute left-[4px] top-[50%] z-10 size-[32px] cursor-pointer"
           )}
           style={{
-            // marginLeft: showSidebar ? `${SIDEBAR_WIDTH}px` : "0px",
-            transform: showSidebar ? "rotate(180deg)" : "rotate(0deg)"
+            transform: showSidebar ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.2s ease-in-out"
           }}
           variant="ghost"
           size="icon"
