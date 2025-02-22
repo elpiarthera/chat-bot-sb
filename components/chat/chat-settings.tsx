@@ -14,9 +14,10 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   useHotkey("i", () => handleClick())
 
   const {
-    chat,
-    setChat,
+    chatSettings,
+    setChatSettings,
     models,
+    availableHostedModels,
     availableLocalModels,
     availableOpenRouterModels
   } = useContext(ChatbotUIContext)
@@ -30,41 +31,22 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   }
 
   useEffect(() => {
-    if (chat.settings) {
-      setChat(prevChat => ({
-        ...prevChat,
-        chatSettings: chat.settings
-      }))
-    }
-  }, [chat.settings, setChat])
+    if (!chatSettings) return
 
-  useEffect(() => {
-    if (!chat.settings) return
-
-    const newSettings = {
-      ...chat.settings,
+    setChatSettings({
+      ...chatSettings,
       temperature: Math.min(
-        chat.settings.temperature,
-        CHAT_SETTING_LIMITS[chat.settings.model]?.MAX_TEMPERATURE || 1
+        chatSettings.temperature,
+        CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_TEMPERATURE || 1
       ),
       contextLength: Math.min(
-        chat.settings.contextLength,
-        CHAT_SETTING_LIMITS[chat.settings.model]?.MAX_CONTEXT_LENGTH || 4096
+        chatSettings.contextLength,
+        CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_CONTEXT_LENGTH || 4096
       )
-    }
+    })
+  }, [chatSettings?.model])
 
-    // Ensure model is always defined
-    if (!newSettings.model) {
-      newSettings.model = "gpt-3.5-turbo" as LLMID // Default model
-    }
-
-    setChat(prevChat => ({
-      ...prevChat,
-      settings: newSettings
-    }))
-  }, [chat.settings?.model])
-
-  if (!chat.settings?.model) return null
+  if (!chatSettings) return null
 
   const allModels = [
     ...models.map(model => ({
@@ -75,38 +57,36 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
       platformLink: "",
       imageInput: false
     })),
+    ...availableHostedModels,
     ...availableLocalModels,
     ...availableOpenRouterModels
   ]
 
-  const fullModel =
-    allModels.find(llm => llm.modelId === chat.settings?.model) || allModels[0]
+  const fullModel = allModels.find(llm => llm.modelId === chatSettings.model)
 
   return (
     <Popover>
-      <PopoverTrigger asChild>
+      <PopoverTrigger>
         <Button
           ref={buttonRef}
-          className="flex size-[32px] items-center justify-center rounded-full p-0"
+          className="flex items-center space-x-2"
           variant="ghost"
         >
-          <IconAdjustmentsHorizontal size={20} />
+          <div className="max-w-[120px] truncate text-lg sm:max-w-[300px] lg:max-w-[500px]">
+            {fullModel?.modelName || chatSettings.model}
+          </div>
+
+          <IconAdjustmentsHorizontal size={28} />
         </Button>
       </PopoverTrigger>
 
       <PopoverContent
-        className="w-[300px] md:w-[400px] lg:w-[500px]"
-        side="bottom"
+        className="bg-background border-input relative flex max-h-[calc(100vh-60px)] w-[300px] flex-col space-y-4 overflow-auto rounded-lg border-2 p-6 sm:w-[350px] md:w-[400px] lg:w-[500px] dark:border-none"
         align="end"
       >
         <ChatSettingsForm
-          chatSettings={chat.settings}
-          onChangeChatSettings={settings => {
-            setChat(prevChat => ({
-              ...prevChat,
-              settings
-            }))
-          }}
+          chatSettings={chatSettings}
+          onChangeChatSettings={setChatSettings}
         />
       </PopoverContent>
     </Popover>
