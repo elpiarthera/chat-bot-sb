@@ -71,7 +71,11 @@ export async function buildFinalMessages(
     if (nextChatMessageFileItems.length > 0) {
       const findFileItems = nextChatMessageFileItems
         .map(fileItemId =>
-          chatFileItems.find(chatFileItem => chatFileItem.id === fileItemId)
+          chatFileItems.find(
+            chatFileItem =>
+              chatFileItem.file_id ===
+              (typeof fileItemId === "string" ? fileItemId : fileItemId.id)
+          )
         )
         .filter(item => item !== undefined) as Tables<"file_items">[]
 

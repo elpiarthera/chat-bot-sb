@@ -73,7 +73,8 @@ export const Dashboard: FC<DashboardProps> = ({ children }) => {
 
       <div
         className={cn(
-          "duration-200 dark:border-none " + (showSidebar ? "border-r-2" : "")
+          "duration-200 dark:border-none " + (showSidebar ? "border-r-2" : ""),
+          "fixed top-1/2 w-full max-w-lg -translate-y-1/2 p-6 shadow-lg sm:rounded-lg"
         )}
         style={{
           // Sidebar

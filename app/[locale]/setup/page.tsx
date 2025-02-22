@@ -23,17 +23,17 @@ import {
 } from "../../../components/setup/step-container"
 
 export default function SetupPage() {
+  const router = useRouter()
   const {
     profile,
     setProfile,
-    setWorkspaces,
-    setSelectedWorkspace,
-    setEnvKeyMap,
+    availableHostedModels,
     setAvailableHostedModels,
-    setAvailableOpenRouterModels
+    availableOpenRouterModels,
+    setAvailableOpenRouterModels,
+    envKeyMap,
+    setEnvKeyMap
   } = useContext(ChatbotUIContext)
-
-  const router = useRouter()
 
   const [loading, setLoading] = useState(true)
 
@@ -67,37 +67,45 @@ export default function SetupPage() {
 
       if (!session) {
         return router.push("/login")
-      } else {
-        const user = session.user
+      }
 
-        const profile = await getProfileByUserId(user.id)
+      const profile = await getProfileByUserId(session.user.id)
+
+      if (profile) {
         setProfile(profile)
         setUsername(profile.username)
 
-        if (!profile.has_onboarded) {
-          setLoading(false)
-        } else {
-          const data = await fetchHostedModels(profile)
+        if (profile.has_onboarded) {
+          const homeWorkspaceId = (
+            await getWorkspacesByUserId(session.user.id)
+          ).find(workspace => workspace.is_home)?.id
 
-          if (!data) return
-
-          setEnvKeyMap(data.envKeyMap)
-          setAvailableHostedModels(data.hostedModels)
-
-          if (profile["openrouter_api_key"] || data.envKeyMap["openrouter"]) {
-            const openRouterModels = await fetchOpenRouterModels()
-            if (!openRouterModels) return
-            setAvailableOpenRouterModels(openRouterModels)
+          if (!homeWorkspaceId) {
+            return router.push("/")
           }
 
-          const homeWorkspaceId = await getHomeWorkspaceByUserId(
-            session.user.id
-          )
           return router.push(`/${homeWorkspaceId}/chat`)
         }
       }
+
+      const hostedModelsData = await fetchHostedModels(profile)
+      if (hostedModelsData) {
+        setAvailableHostedModels(hostedModelsData.hostedModels)
+        setEnvKeyMap(hostedModelsData.envKeyMap)
+      }
+
+      const openRouterModels = await fetchOpenRouterModels()
+      if (openRouterModels) {
+        setAvailableOpenRouterModels(openRouterModels)
+      }
     })()
-  }, [])
+  }, [
+    router,
+    setProfile,
+    setAvailableHostedModels,
+    setAvailableOpenRouterModels,
+    setEnvKeyMap
+  ])
 
   const handleShouldProceed = (proceed: boolean) => {
     if (proceed) {
@@ -149,8 +157,7 @@ export default function SetupPage() {
     const homeWorkspace = workspaces.find(w => w.is_home)
 
     // There will always be a home workspace
-    setSelectedWorkspace(homeWorkspace!)
-    setWorkspaces(workspaces)
+    setEnvKeyMap(envKeyMap)
 
     return router.push(`/${homeWorkspace?.id}/chat`)
   }

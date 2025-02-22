@@ -6,7 +6,7 @@ import { getCollectionFilesByCollectionId } from "@/db/collection-files"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { Tables } from "@/supabase/types"
-import { LLMID } from "@/types"
+import { LLMID, ChatFile } from "@/types"
 import { IconChevronDown, IconRobotFace } from "@tabler/icons-react"
 import Image from "next/image"
 import { FC, useContext, useEffect, useRef, useState } from "react"
@@ -84,12 +84,16 @@ export const QuickSettings: FC<QuickSettingsProps> = ({}) => {
         .tools
       setSelectedTools(assistantTools)
       setChatFiles(
-        allFiles.map(file => ({
-          id: file.id,
-          name: file.name,
-          type: file.type,
-          file: null
-        }))
+        allFiles.map(
+          file =>
+            ({
+              id: file.id,
+              name: file.name,
+              type: file.type,
+              description: file.name,
+              file: null
+            }) as ChatFile
+        )
       )
       if (allFiles.length > 0) setShowFilesDisplay(true)
       setLoading(false)

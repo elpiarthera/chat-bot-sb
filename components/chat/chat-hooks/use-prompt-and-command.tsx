@@ -4,7 +4,7 @@ import { getAssistantFilesByAssistantId } from "@/db/assistant-files"
 import { getAssistantToolsByAssistantId } from "@/db/assistant-tools"
 import { getCollectionFilesByCollectionId } from "@/db/collection-files"
 import { Tables } from "@/supabase/types"
-import { LLMID } from "@/types"
+import { LLMID, ChatFile } from "@/types"
 import { useContext } from "react"
 
 export const usePromptAndCommand = () => {
@@ -87,8 +87,9 @@ export const usePromptAndCommand = () => {
             id: file.id,
             name: file.name,
             type: file.type,
+            description: file.name,
             file: null
-          }
+          } as ChatFile
         ]
       }
       return prev
@@ -115,12 +116,16 @@ export const usePromptAndCommand = () => {
             !prev.some(prevFile => prevFile.id === file.id) &&
             !chatFiles.some(chatFile => chatFile.id === file.id)
         )
-        .map(file => ({
-          id: file.id,
-          name: file.name,
-          type: file.type,
-          file: null
-        }))
+        .map(
+          file =>
+            ({
+              id: file.id,
+              name: file.name,
+              type: file.type,
+              description: file.name,
+              file: null
+            }) as ChatFile
+        )
 
       return [...prev, ...newFiles]
     })
@@ -168,12 +173,16 @@ export const usePromptAndCommand = () => {
 
     setSelectedTools(assistantTools)
     setChatFiles(
-      allFiles.map(file => ({
-        id: file.id,
-        name: file.name,
-        type: file.type,
-        file: null
-      }))
+      allFiles.map(
+        file =>
+          ({
+            id: file.id,
+            name: file.name,
+            type: file.type,
+            description: file.name,
+            file: null
+          }) as ChatFile
+      )
     )
 
     if (allFiles.length > 0) setShowFilesDisplay(true)

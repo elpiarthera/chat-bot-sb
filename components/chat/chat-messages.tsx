@@ -3,11 +3,13 @@ import { ChatbotUIContext } from "@/context/context"
 import { Tables } from "@/supabase/types"
 import { FC, useContext, useState } from "react"
 import { Message } from "../messages/message"
+import { ChatFile } from "@/types/chat-file"
 
 interface ChatMessagesProps {}
 
 export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
-  const { chatMessages, chatFileItems } = useContext(ChatbotUIContext)
+  const { chatMessages, chatFileItems, chatFiles } =
+    useContext(ChatbotUIContext)
 
   const { handleSendEdit } = useChatHandler()
 
@@ -16,11 +18,26 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
   return chatMessages
     .sort((a, b) => a.message.sequence_number - b.message.sequence_number)
     .map((chatMessage, index, array) => {
-      const messageFileItems = chatFileItems.filter(
-        (chatFileItem, _, self) =>
-          chatMessage.fileItems.includes(chatFileItem.id) &&
-          self.findIndex(item => item.id === chatFileItem.id) === _
-      )
+      const mapChatFileToFileItem = (
+        chatFile: ChatFile
+      ): Tables<"file_items"> => ({
+        file_id: chatFile.id,
+        content: chatFile.description, // Assuming description is used as content
+        created_at: "", // Placeholder, replace with actual value if available
+        id: chatFile.id,
+        local_embedding: null, // Placeholder, replace with actual value if available
+        openai_embedding: null, // Placeholder, replace with actual value if available
+        sharing: "", // Placeholder, replace with actual value if available
+        tokens: 0, // Placeholder, replace with actual value if available
+        updated_at: null, // Placeholder, replace with actual value if available
+        user_id: "" // Placeholder, replace with actual value if available
+      })
+
+      const messageFileItems = chatMessage.fileItems
+        .map((chatFile: ChatFile) => mapChatFileToFileItem(chatFile))
+        .filter(
+          (fileItem): fileItem is Tables<"file_items"> => fileItem !== undefined
+        )
 
       return (
         <Message

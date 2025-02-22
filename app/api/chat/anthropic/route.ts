@@ -3,7 +3,6 @@ import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { getBase64FromDataURL, getMediaTypeFromDataURL } from "@/lib/utils"
 import { ChatSettings } from "@/types"
 import Anthropic from "@anthropic-ai/sdk"
-import { AnthropicStream, StreamingTextResponse } from "ai"
 import { NextRequest, NextResponse } from "next/server"
 
 export const runtime = "edge"
@@ -61,28 +60,43 @@ export async function POST(request: NextRequest) {
 
     try {
       const response = await anthropic.messages.create({
-        model: chatSettings.model,
         messages: ANTHROPIC_FORMATTED_MESSAGES,
-        temperature: chatSettings.temperature,
-        system: messages[0].content,
+        model: chatSettings.model,
         max_tokens:
           CHAT_SETTING_LIMITS[chatSettings.model].MAX_TOKEN_OUTPUT_LENGTH,
+        temperature: chatSettings.temperature,
+        system: messages[0].content,
         stream: true
       })
 
-      try {
-        const stream = AnthropicStream(response)
-        return new StreamingTextResponse(stream)
-      } catch (error: any) {
-        console.error("Error parsing Anthropic API response:", error)
-        return new NextResponse(
-          JSON.stringify({
-            message:
-              "An error occurred while parsing the Anthropic API response"
-          }),
-          { status: 500 }
-        )
-      }
+      // Convert the response to a ReadableStream
+      const stream = new ReadableStream({
+        async start(controller) {
+          const encoder = new TextEncoder()
+          for await (const chunk of response) {
+            // Type assertion for the chunk
+            const messageChunk = chunk as {
+              type: string
+              delta: { text: string }
+            }
+            if (
+              messageChunk.type === "message_delta" &&
+              messageChunk.delta.text
+            ) {
+              controller.enqueue(encoder.encode(messageChunk.delta.text))
+            }
+          }
+          controller.close()
+        }
+      })
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive"
+        }
+      })
     } catch (error: any) {
       console.error("Error calling Anthropic API:", error)
       return new NextResponse(

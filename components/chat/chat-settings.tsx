@@ -14,12 +14,13 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   useHotkey("i", () => handleClick())
 
   const {
-    chatSettings,
-    setChatSettings,
-    models,
-    availableHostedModels,
-    availableLocalModels,
-    availableOpenRouterModels
+    chat: {
+      settings,
+      setChat,
+      models,
+      availableLocalModels,
+      availableOpenRouterModels
+    }
   } = useContext(ChatbotUIContext)
 
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -31,22 +32,34 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   }
 
   useEffect(() => {
-    if (!chatSettings) return
+    if (settings) {
+      setChat(prevChat => ({
+        ...prevChat,
+        chatSettings: settings
+      }))
+    }
+  }, [settings, setChat])
 
-    setChatSettings({
-      ...chatSettings,
-      temperature: Math.min(
-        chatSettings.temperature,
-        CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_TEMPERATURE || 1
-      ),
-      contextLength: Math.min(
-        chatSettings.contextLength,
-        CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_CONTEXT_LENGTH || 4096
-      )
-    })
-  }, [chatSettings?.model])
+  useEffect(() => {
+    if (!settings) return
 
-  if (!chatSettings) return null
+    setChat(prevChat => ({
+      ...prevChat,
+      settings: {
+        ...settings,
+        temperature: Math.min(
+          settings.temperature,
+          CHAT_SETTING_LIMITS[settings.model]?.MAX_TEMPERATURE || 1
+        ),
+        contextLength: Math.min(
+          settings.contextLength,
+          CHAT_SETTING_LIMITS[settings.model]?.MAX_CONTEXT_LENGTH || 4096
+        )
+      }
+    }))
+  }, [settings?.model])
+
+  if (!settings) return null
 
   const allModels = [
     ...models.map(model => ({
@@ -57,12 +70,11 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
       platformLink: "",
       imageInput: false
     })),
-    ...availableHostedModels,
     ...availableLocalModels,
     ...availableOpenRouterModels
   ]
 
-  const fullModel = allModels.find(llm => llm.modelId === chatSettings.model)
+  const fullModel = allModels.find(llm => llm.modelId === settings.model)
 
   return (
     <Popover>
@@ -73,7 +85,7 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
           variant="ghost"
         >
           <div className="max-w-[120px] truncate text-lg sm:max-w-[300px] lg:max-w-[500px]">
-            {fullModel?.modelName || chatSettings.model}
+            {fullModel?.modelName || settings.model}
           </div>
 
           <IconAdjustmentsHorizontal size={28} />
@@ -85,8 +97,13 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
         align="end"
       >
         <ChatSettingsForm
-          chatSettings={chatSettings}
-          onChangeChatSettings={setChatSettings}
+          chatSettings={settings}
+          onChangeChatSettings={newSettings =>
+            setChat(prevChat => ({
+              ...prevChat,
+              settings: newSettings
+            }))
+          }
         />
       </PopoverContent>
     </Popover>

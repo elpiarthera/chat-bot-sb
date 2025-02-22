@@ -2,6 +2,7 @@ import Loading from "@/app/[locale]/loading"
 import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { getAssistantToolsByAssistantId } from "@/db/assistant-tools"
+import { getAssistantById } from "@/db/assistants"
 import { getChatFilesByChatId } from "@/db/chat-files"
 import { getChatById } from "@/db/chats"
 import { getMessageFileItemsByMessageId } from "@/db/message-file-items"
@@ -9,7 +10,8 @@ import { getMessagesByChatId } from "@/db/messages"
 import { getMessageImageFromStorage } from "@/db/storage/message-images"
 import { convertBlobToBase64 } from "@/lib/blob-to-b64"
 import useHotkey from "@/lib/hooks/use-hotkey"
-import { LLMID, MessageImage } from "@/types"
+import { LLMID, MessageImage, ChatFile, ChatMessage } from "@/types"
+import { Tables } from "@/supabase/types"
 import { useParams } from "next/navigation"
 import { FC, useContext, useEffect, useState } from "react"
 import { ChatHelp } from "./chat-help"
@@ -22,31 +24,23 @@ import { ChatSecondaryButtons } from "./chat-secondary-buttons"
 interface ChatUIProps {}
 
 export const ChatUI: FC<ChatUIProps> = ({}) => {
-  useHotkey("o", () => handleNewChat())
-
   const params = useParams()
-
   const {
+    setChat,
+    chatMessages,
     setChatMessages,
     selectedChat,
     setSelectedChat,
-    setChatSettings,
-    setChatImages,
-    assistants,
-    setSelectedAssistant,
-    setChatFileItems,
-    setChatFiles,
-    setShowFilesDisplay,
-    setUseRetrieval,
-    setSelectedTools
+    chatImages,
+    setChatImages
   } = useContext(ChatbotUIContext)
 
-  const { handleNewChat, handleFocusChatInput } = useChatHandler()
+  const [loading, setLoading] = useState(true)
 
   const {
     messagesStartRef,
     messagesEndRef,
-    handleScroll,
+    scrollRef,
     scrollToBottom,
     setIsAtBottom,
     isAtTop,
@@ -54,27 +48,6 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     isOverflowing,
     scrollToTop
   } = useScroll()
-
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      await fetchMessages()
-      await fetchChat()
-
-      scrollToBottom()
-      setIsAtBottom(true)
-    }
-
-    if (params.chatid) {
-      fetchData().then(() => {
-        handleFocusChatInput()
-        setLoading(false)
-      })
-    } else {
-      setLoading(false)
-    }
-  }, [])
 
   const fetchMessages = async () => {
     const fetchedMessages = await getMessagesByChatId(params.chatid as string)
@@ -111,7 +84,10 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     )
 
     const images: MessageImage[] = await Promise.all(imagePromises.flat())
-    setChatImages(images)
+    setChat(prevChat => ({
+      ...prevChat,
+      chatImages: images
+    }))
 
     const messageFileItemPromises = fetchedMessages.map(
       async message => await getMessageFileItemsByMessageId(message.id)
@@ -120,21 +96,33 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     const messageFileItems = await Promise.all(messageFileItemPromises)
 
     const uniqueFileItems = messageFileItems.flatMap(item => item.file_items)
-    setChatFileItems(uniqueFileItems)
+    setChat(prevChat => ({
+      ...prevChat,
+      chatFileItems: uniqueFileItems
+    }))
 
-    const chatFiles = await getChatFilesByChatId(params.chatid as string)
-
-    setChatFiles(
-      chatFiles.files.map(file => ({
-        id: file.id,
-        name: file.name,
-        type: file.type,
-        file: null
-      }))
+    const chatFilesResponse = await getChatFilesByChatId(
+      params.chatid as string
     )
+    const chatFiles = chatFilesResponse.files
 
-    setUseRetrieval(true)
-    setShowFilesDisplay(true)
+    setChat(prevChat => ({
+      ...prevChat,
+      chatFiles: chatFiles.map((file: Tables<"files">) => ({
+        content: file.name,
+        created_at: file.created_at,
+        file_id: file.id,
+        id: file.id,
+        local_embedding: null,
+        openai_embedding: null,
+        sharing: file.sharing,
+        tokens: file.tokens,
+        updated_at: file.updated_at,
+        user_id: file.user_id
+      })),
+      useRetrieval: true,
+      showFilesDisplay: true
+    }))
 
     const fetchedChatMessages = fetchedMessages.map(message => {
       return {
@@ -142,44 +130,89 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
         fileItems: messageFileItems
           .filter(messageFileItem => messageFileItem.id === message.id)
           .flatMap(messageFileItem =>
-            messageFileItem.file_items.map(fileItem => fileItem.id)
+            messageFileItem.file_items.map(
+              fileItem =>
+                ({
+                  id: fileItem.id,
+                  name: fileItem.content,
+                  type: "text",
+                  file: null
+                }) as ChatFile
+            )
           )
-      }
+      } as ChatMessage
     })
 
-    setChatMessages(fetchedChatMessages)
+    setChat(prevChat => ({
+      ...prevChat,
+      chatMessages: fetchedChatMessages
+    }))
   }
 
   const fetchChat = async () => {
     const chat = await getChatById(params.chatid as string)
     if (!chat) return
 
-    if (chat.assistant_id) {
-      const assistant = assistants.find(
-        assistant => assistant.id === chat.assistant_id
-      )
+    setSelectedChat(chat)
 
-      if (assistant) {
-        setSelectedAssistant(assistant)
+    if (chat.assistant_id) {
+      const assistantResult = await getAssistantById(chat.assistant_id)
+      if (assistantResult && "assistant" in assistantResult) {
+        const assistant = assistantResult.assistant as Tables<"assistants">
+
+        setChat(prevChat => ({
+          ...prevChat,
+          selectedAssistant: assistant
+        }))
 
         const assistantTools = (
           await getAssistantToolsByAssistantId(assistant.id)
         ).tools
-        setSelectedTools(assistantTools)
+        setChat(prevChat => ({
+          ...prevChat,
+          selectedTools: assistantTools
+        }))
       }
     }
 
-    setSelectedChat(chat)
-    setChatSettings({
-      model: chat.model as LLMID,
-      prompt: chat.prompt,
-      temperature: chat.temperature,
-      contextLength: chat.context_length,
-      includeProfileContext: chat.include_profile_context,
-      includeWorkspaceInstructions: chat.include_workspace_instructions,
-      embeddingsProvider: chat.embeddings_provider as "openai" | "local"
-    })
+    setChat(prevChat => ({
+      ...prevChat,
+      chatSettings: {
+        model: chat.model as LLMID,
+        prompt: chat.prompt,
+        temperature: chat.temperature,
+        contextLength: chat.context_length,
+        includeProfileContext: chat.include_profile_context,
+        includeWorkspaceInstructions: chat.include_workspace_instructions,
+        embeddingsProvider: chat.embeddings_provider as "openai" | "local"
+      }
+    }))
   }
+
+  const handleFocusChatInput = () => {
+    const chatInput = document.getElementById("chat-input")
+    if (chatInput) {
+      chatInput.focus()
+    }
+  }
+
+  useEffect(() => {
+    ;(async () => {
+      if (!params.chatid) return
+      await fetchChat()
+      await fetchMessages()
+      handleFocusChatInput()
+      scrollToBottom()
+      setIsAtBottom(true)
+    })()
+  }, [
+    params.chatid,
+    fetchChat,
+    fetchMessages,
+    handleFocusChatInput,
+    scrollToBottom,
+    setIsAtBottom
+  ])
 
   if (loading) {
     return <Loading />
@@ -209,12 +242,10 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
 
       <div
         className="flex size-full flex-col overflow-auto border-b"
-        onScroll={handleScroll}
+        ref={scrollRef}
       >
         <div ref={messagesStartRef} />
-
         <ChatMessages />
-
         <div ref={messagesEndRef} />
       </div>
 

@@ -2,13 +2,27 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.ANALYZE === "true"
 })
 
-const withPWA = require("next-pwa")({
-  dest: "public"
-})
+module.exports = async (phase, { defaultConfig }) => {
+  const withPWA = (await import("next-pwa")).default({
+    dest: "public",
+    register: true,
+    skipWaiting: true,
+  })
 
-module.exports = withBundleAnalyzer(
-  withPWA({
+  /**
+   * @type {import('next').NextConfig}
+   */
+  const nextConfig = {
     reactStrictMode: true,
+    webpack: (config, { isServer }) => {
+      if (!isServer) {
+        config.resolve.fallback = {
+          ...config.resolve.fallback,
+          path: require.resolve('path-browserify'),
+        };
+      }
+      return config;
+    },
     images: {
       remotePatterns: [
         {
@@ -28,5 +42,7 @@ module.exports = withBundleAnalyzer(
     experimental: {
       serverComponentsExternalPackages: ["sharp", "onnxruntime-node"]
     }
-  })
-)
+  }
+
+  return withPWA(withBundleAnalyzer(nextConfig))
+}

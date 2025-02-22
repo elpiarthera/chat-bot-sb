@@ -26,13 +26,10 @@ interface WorkspaceLayoutProps {
 
 export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   const router = useRouter()
-
-  const params = useParams()
-  const searchParams = useSearchParams()
-  const workspaceId = params.workspaceid as string
-
+  const { workspaceid } = useParams()
+  const workspaceId = workspaceid as string
   const {
-    setChatSettings,
+    setChat,
     setAssistants,
     setAssistantImages,
     setChats,
@@ -43,50 +40,9 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     setPrompts,
     setTools,
     setModels,
-    selectedWorkspace,
-    setSelectedWorkspace,
-    setSelectedChat,
-    setChatMessages,
-    setUserInput,
-    setIsGenerating,
-    setFirstTokenReceived,
-    setChatFiles,
-    setChatImages,
-    setNewMessageFiles,
-    setNewMessageImages,
-    setShowFilesDisplay
+    setSelectedWorkspace
   } = useContext(ChatbotUIContext)
-
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    ;(async () => {
-      const session = (await supabase.auth.getSession()).data.session
-
-      if (!session) {
-        return router.push("/login")
-      } else {
-        await fetchWorkspaceData(workspaceId)
-      }
-    })()
-  }, [])
-
-  useEffect(() => {
-    ;(async () => await fetchWorkspaceData(workspaceId))()
-
-    setUserInput("")
-    setChatMessages([])
-    setSelectedChat(null)
-
-    setIsGenerating(false)
-    setFirstTokenReceived(false)
-
-    setChatFiles([])
-    setChatImages([])
-    setNewMessageFiles([])
-    setNewMessageImages([])
-    setShowFilesDisplay(false)
-  }, [workspaceId])
 
   const fetchWorkspaceData = async (workspaceId: string) => {
     setLoading(true)
@@ -98,82 +54,73 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     setAssistants(assistantData.assistants)
 
     for (const assistant of assistantData.assistants) {
-      let url = ""
-
       if (assistant.image_path) {
-        url = (await getAssistantImageFromStorage(assistant.image_path)) || ""
-      }
-
-      if (url) {
-        const response = await fetch(url)
-        const blob = await response.blob()
-        const base64 = await convertBlobToBase64(blob)
-
-        setAssistantImages(prev => [
-          ...prev,
-          {
-            assistantId: assistant.id,
-            path: assistant.image_path,
-            base64,
-            url
-          }
-        ])
-      } else {
-        setAssistantImages(prev => [
-          ...prev,
-          {
-            assistantId: assistant.id,
-            path: assistant.image_path,
-            base64: "",
-            url
-          }
-        ])
+        const imageUrl = await getAssistantImageFromStorage(
+          assistant.image_path
+        )
+        if (imageUrl) {
+          setAssistantImages(prev => ({
+            ...prev,
+            [assistant.id]: imageUrl
+          }))
+        }
       }
     }
 
     const chats = await getChatsByWorkspaceId(workspaceId)
     setChats(chats)
 
-    const collectionData =
-      await getCollectionWorkspacesByWorkspaceId(workspaceId)
-    setCollections(collectionData.collections)
+    const collections = await getCollectionWorkspacesByWorkspaceId(workspaceId)
+    setCollections(collections.collections)
 
     const folders = await getFoldersByWorkspaceId(workspaceId)
     setFolders(folders)
 
-    const fileData = await getFileWorkspacesByWorkspaceId(workspaceId)
-    setFiles(fileData.files)
+    const files = await getFileWorkspacesByWorkspaceId(workspaceId)
+    setFiles(files.files)
 
-    const presetData = await getPresetWorkspacesByWorkspaceId(workspaceId)
-    setPresets(presetData.presets)
+    const presets = await getPresetWorkspacesByWorkspaceId(workspaceId)
+    setPresets(presets.presets)
 
-    const promptData = await getPromptWorkspacesByWorkspaceId(workspaceId)
-    setPrompts(promptData.prompts)
+    const prompts = await getPromptWorkspacesByWorkspaceId(workspaceId)
+    setPrompts(prompts.prompts)
 
-    const toolData = await getToolWorkspacesByWorkspaceId(workspaceId)
-    setTools(toolData.tools)
+    const tools = await getToolWorkspacesByWorkspaceId(workspaceId)
+    setTools(tools.tools)
 
-    const modelData = await getModelWorkspacesByWorkspaceId(workspaceId)
-    setModels(modelData.models)
-
-    setChatSettings({
-      model: (searchParams.get("model") ||
-        workspace?.default_model ||
-        "gpt-4-1106-preview") as LLMID,
-      prompt:
-        workspace?.default_prompt ||
-        "You are a friendly, helpful AI assistant.",
-      temperature: workspace?.default_temperature || 0.5,
-      contextLength: workspace?.default_context_length || 4096,
-      includeProfileContext: workspace?.include_profile_context || true,
-      includeWorkspaceInstructions:
-        workspace?.include_workspace_instructions || true,
-      embeddingsProvider:
-        (workspace?.embeddings_provider as "openai" | "local") || "openai"
-    })
+    const models = await getModelWorkspacesByWorkspaceId(workspaceId)
+    setModels(models.models)
 
     setLoading(false)
   }
+
+  useEffect(() => {
+    ;(async () => {
+      if (!workspaceId) {
+        router.push("/")
+      } else {
+        await fetchWorkspaceData(workspaceId)
+      }
+    })()
+  }, [workspaceId, router, fetchWorkspaceData])
+
+  useEffect(() => {
+    ;(async () => await fetchWorkspaceData(workspaceId))()
+
+    setChat(prevChat => ({
+      ...prevChat,
+      userInput: "",
+      messages: [],
+      selectedChat: null,
+      isGenerating: false,
+      firstTokenReceived: false,
+      chatFiles: [],
+      chatImages: [],
+      newMessageFiles: [],
+      newMessageImages: [],
+      showFilesDisplay: false
+    }))
+  }, [workspaceId, fetchWorkspaceData, setChat])
 
   if (loading) {
     return <Loading />

@@ -11,13 +11,9 @@ import {
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { Dispatch, SetStateAction, createContext } from "react"
+import { ChatState, initialChatState } from "@/types/chat"
 
-interface ChatState {
-  messages: ChatMessage[]
-  settings: ChatSettings | null
-  files: ChatFile[]
-  isGenerating: boolean
-}
+export { initialChatState }
 
 /**
  * Main context for the Chatbot UI application.
@@ -29,7 +25,7 @@ interface ChatState {
  * - Workspace organization
  */
 interface ChatbotUIContext {
-  /** Current user profile information. Null when not authenticated */
+  /** Current user profile information. Null if not authenticated */
   profile: Tables<"profiles"> | null
   setProfile: Dispatch<SetStateAction<Tables<"profiles"> | null>>
 
@@ -117,28 +113,17 @@ interface ChatbotUIContext {
   openaiAssistants: any[] // TODO: Type this properly
   setOpenaiAssistants: Dispatch<SetStateAction<any[]>>
 
-  // PASSIVE CHAT STORE
-  /** Current user input in chat */
+  // PASSIVE CHAT STORE and ACTIVE CHAT STORE -> Merged inside chat: ChatState;
   userInput: string
   setUserInput: Dispatch<SetStateAction<string>>
-
-  /** Messages in the current chat */
   chatMessages: ChatMessage[]
   setChatMessages: Dispatch<SetStateAction<ChatMessage[]>>
-
-  /** Settings for the current chat */
   chatSettings: ChatSettings | null
   setChatSettings: Dispatch<SetStateAction<ChatSettings | null>>
-
-  /** Currently selected chat */
   selectedChat: Tables<"chats"> | null
   setSelectedChat: Dispatch<SetStateAction<Tables<"chats"> | null>>
-
-  /** File items associated with current chat */
   chatFileItems: Tables<"file_items">[]
   setChatFileItems: Dispatch<SetStateAction<Tables<"file_items">[]>>
-
-  // ACTIVE CHAT STORE
   abortController: AbortController | null
   setAbortController: Dispatch<SetStateAction<AbortController | null>>
   firstTokenReceived: boolean
@@ -197,6 +182,7 @@ interface ChatbotUIContext {
   setToolInUse: Dispatch<SetStateAction<string>>
 
   chat: ChatState
+  setChat: Dispatch<SetStateAction<ChatState>>
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({
@@ -254,7 +240,7 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   openaiAssistants: [],
   setOpenaiAssistants: () => {},
 
-  // PASSIVE CHAT STORE
+  // PASSIVE CHAT STORE and ACTIVE CHAT STORE
   userInput: "",
   setUserInput: () => {},
   chatMessages: [],
@@ -265,8 +251,6 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setSelectedChat: () => {},
   chatFileItems: [],
   setChatFileItems: () => {},
-
-  // ACTIVE CHAT STORE
   isGenerating: false,
   setIsGenerating: () => {},
   firstTokenReceived: false,
@@ -324,10 +308,6 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   toolInUse: "none",
   setToolInUse: () => {},
 
-  chat: {
-    messages: [],
-    settings: null,
-    files: [],
-    isGenerating: false
-  }
+  chat: initialChatState,
+  setChat: () => {}
 })

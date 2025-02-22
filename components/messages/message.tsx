@@ -3,7 +3,7 @@ import { ChatbotUIContext } from "@/context/context"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { cn } from "@/lib/utils"
 import { Tables } from "@/supabase/types"
-import { LLM, LLMID, MessageImage, ModelProvider } from "@/types"
+import { LLM, LLMID, MessageImage, ModelProvider, ChatFile } from "@/types"
 import {
   IconBolt,
   IconCaretDownFilled,
@@ -49,7 +49,7 @@ export const Message: FC<MessageProps> = ({
     assistants,
     profile,
     isGenerating,
-    setIsGenerating,
+    setChat,
     firstTokenReceived,
     availableLocalModels,
     availableOpenRouterModels,
@@ -104,7 +104,10 @@ export const Message: FC<MessageProps> = ({
   }
 
   const handleRegenerate = async () => {
-    setIsGenerating(true)
+    setChat(prevChat => ({
+      ...prevChat,
+      isGenerating: true
+    }))
     await handleSendMessage(
       editedMessage || chatMessages[chatMessages.length - 2].message.content,
       chatMessages,
@@ -377,7 +380,7 @@ export const Message: FC<MessageProps> = ({
         )}
 
         <div className="mt-3 flex flex-wrap gap-2">
-          {message.image_paths.map((path, index) => {
+          {message.image_paths?.map((path, index) => {
             const item = chatImages.find(image => image.path === path)
 
             return (

@@ -15,6 +15,17 @@ interface FilePickerProps {
   isFocused: boolean
 }
 
+type FileItem = {
+  id: string
+  name: string
+  type: string
+  description: string
+  created_at: string
+  sharing: string
+  updated_at: string | null
+  user_id: string
+}
+
 export const FilePicker: FC<FilePickerProps> = ({
   isOpen,
   searchQuery,
@@ -25,8 +36,8 @@ export const FilePicker: FC<FilePickerProps> = ({
   onSelectCollection,
   isFocused
 }) => {
-  const { files, collections, setIsFilePickerOpen } =
-    useContext(ChatbotUIContext)
+  const { chat, setChat } = useContext(ChatbotUIContext)
+  const { files, collections } = chat
 
   const itemsRef = useRef<(HTMLDivElement | null)[]>([])
 
@@ -36,11 +47,25 @@ export const FilePicker: FC<FilePickerProps> = ({
     }
   }, [isFocused])
 
-  const filteredFiles = files.filter(
-    file =>
-      file.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !selectedFileIds.includes(file.id)
-  )
+  const filteredFiles = files
+    .map(
+      file =>
+        ({
+          id: file.id,
+          name: file.content,
+          type: "text",
+          description: file.content,
+          created_at: file.created_at,
+          sharing: file.sharing,
+          updated_at: file.updated_at,
+          user_id: file.user_id
+        }) as FileItem
+    )
+    .filter(
+      file =>
+        file.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !selectedFileIds.includes(file.id)
+    )
 
   const filteredCollections = collections.filter(
     collection =>
@@ -52,8 +77,8 @@ export const FilePicker: FC<FilePickerProps> = ({
     onOpenChange(isOpen)
   }
 
-  const handleSelectFile = (file: Tables<"files">) => {
-    onSelectFile(file)
+  const handleSelectFile = (file: FileItem) => {
+    onSelectFile(file as unknown as Tables<"files">)
     handleOpenChange(false)
   }
 
@@ -63,20 +88,27 @@ export const FilePicker: FC<FilePickerProps> = ({
   }
 
   const getKeyDownHandler =
-    (index: number, type: "file" | "collection", item: any) =>
+    (
+      index: number,
+      type: "file" | "collection",
+      item: FileItem | Tables<"collections">
+    ) =>
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Escape") {
         e.preventDefault()
-        setIsFilePickerOpen(false)
+        setChat(prevChat => ({
+          ...prevChat,
+          isFilePickerOpen: false
+        }))
       } else if (e.key === "Backspace") {
         e.preventDefault()
       } else if (e.key === "Enter") {
         e.preventDefault()
 
         if (type === "file") {
-          handleSelectFile(item)
+          handleSelectFile(item as FileItem)
         } else {
-          handleSelectCollection(item)
+          handleSelectCollection(item as Tables<"collections">)
         }
       } else if (
         (e.key === "Tab" || e.key === "ArrowDown") &&
@@ -86,7 +118,6 @@ export const FilePicker: FC<FilePickerProps> = ({
         e.preventDefault()
         itemsRef.current[0]?.focus()
       } else if (e.key === "ArrowUp" && !e.shiftKey && index === 0) {
-        // go to last element if arrow up is pressed on first element
         e.preventDefault()
         itemsRef.current[itemsRef.current.length - 1]?.focus()
       } else if (e.key === "ArrowUp") {
@@ -121,9 +152,9 @@ export const FilePicker: FC<FilePickerProps> = ({
                   className="hover:bg-accent focus:bg-accent flex cursor-pointer items-center rounded p-2 focus:outline-none"
                   onClick={() => {
                     if ("type" in item) {
-                      handleSelectFile(item as Tables<"files">)
+                      handleSelectFile(item as FileItem)
                     } else {
-                      handleSelectCollection(item)
+                      handleSelectCollection(item as Tables<"collections">)
                     }
                   }}
                   onKeyDown={e =>
@@ -135,7 +166,7 @@ export const FilePicker: FC<FilePickerProps> = ({
                   }
                 >
                   {"type" in item ? (
-                    <FileIcon type={(item as Tables<"files">).type} size={32} />
+                    <FileIcon type={item.type} size={32} />
                   ) : (
                     <IconBooks size={32} />
                   )}

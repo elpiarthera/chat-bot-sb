@@ -497,7 +497,13 @@ export const handleCreateMessages = async (
       },
       {
         message: createdMessages[1],
-        fileItems: retrievedFileItems.map(fileItem => fileItem.id)
+        fileItems: retrievedFileItems.map(fileItem => ({
+          id: fileItem.id,
+          name: fileItem.file_id,
+          type: "file",
+          description: fileItem.content || "",
+          file: null
+        }))
       }
     ]
 

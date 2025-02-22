@@ -7,7 +7,13 @@ import { getCollectionFilesByCollectionId } from "@/db/collection-files"
 import { deleteMessagesIncludingAndAfter } from "@/db/messages"
 import { buildFinalMessages } from "@/lib/build-prompt"
 import { Tables } from "@/supabase/types"
-import { ChatMessage, ChatPayload, LLMID, ModelProvider } from "@/types"
+import {
+  ChatMessage,
+  ChatPayload,
+  LLMID,
+  ModelProvider,
+  ChatFile
+} from "@/types"
 import { useRouter } from "next/navigation"
 import { useContext, useEffect, useRef } from "react"
 import { LLM_LIST } from "../../../lib/models/llm/llm-list"
@@ -134,12 +140,16 @@ export const useChatHandler = () => {
 
       setSelectedTools(assistantTools)
       setChatFiles(
-        allFiles.map(file => ({
-          id: file.id,
-          name: file.name,
-          type: file.type,
-          file: null
-        }))
+        allFiles.map(
+          file =>
+            ({
+              id: file.id,
+              name: file.name,
+              type: file.type,
+              description: file.name,
+              file: null
+            }) as ChatFile
+        )
       )
 
       if (allFiles.length > 0) setShowFilesDisplay(true)

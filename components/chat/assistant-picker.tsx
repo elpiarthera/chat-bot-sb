@@ -2,7 +2,7 @@ import { ChatbotUIContext } from "@/context/context"
 import { Tables } from "@/supabase/types"
 import { IconRobotFace } from "@tabler/icons-react"
 import Image from "next/image"
-import { FC, useContext, useEffect, useRef } from "react"
+import { FC, useEffect, useRef, useContext } from "react"
 import { usePromptAndCommand } from "./chat-hooks/use-prompt-and-command"
 
 interface AssistantPickerProps {}

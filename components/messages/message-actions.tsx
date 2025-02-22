@@ -24,7 +24,9 @@ export const MessageActions: FC<MessageActionsProps> = ({
   onEdit,
   onRegenerate
 }) => {
-  const { isGenerating } = useContext(ChatbotUIContext)
+  const {
+    chat: { isGenerating }
+  } = useContext(ChatbotUIContext)
 
   const [showCheckmark, setShowCheckmark] = useState(false)
 

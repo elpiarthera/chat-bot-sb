@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export default function ChangePasswordPage() {
-  const [loading, setLoading] = useState(true)
-
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     ;(async () => {
@@ -20,7 +19,7 @@ export default function ChangePasswordPage() {
         setLoading(false)
       }
     })()
-  }, [])
+  }, [router])
 
   if (loading) {
     return null

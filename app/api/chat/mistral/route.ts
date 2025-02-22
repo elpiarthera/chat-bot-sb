@@ -1,8 +1,6 @@
-import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
-import { OpenAIStream, StreamingTextResponse } from "ai"
-import OpenAI from "openai"
+import MistralClient from "@mistralai/mistralai"
 
 export const runtime = "edge"
 
@@ -18,25 +16,40 @@ export async function POST(request: Request) {
 
     checkApiKey(profile.mistral_api_key, "Mistral")
 
-    // Mistral is compatible the OpenAI SDK
-    const mistral = new OpenAI({
-      apiKey: profile.mistral_api_key || "",
-      baseURL: "https://api.mistral.ai/v1"
-    })
+    const mistral = new MistralClient(profile.mistral_api_key || "")
 
-    const response = await mistral.chat.completions.create({
+    const response = await mistral.chat({
       model: chatSettings.model,
-      messages,
-      max_tokens:
-        CHAT_SETTING_LIMITS[chatSettings.model].MAX_TOKEN_OUTPUT_LENGTH,
+      messages: messages,
+      temperature: chatSettings.temperature,
       stream: true
     })
 
-    // Convert the response into a friendly text-stream.
-    const stream = OpenAIStream(response)
+    // Convert the response to a ReadableStream
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder()
+        try {
+          for await (const chunk of response) {
+            if (chunk.type === "text") {
+              controller.enqueue(encoder.encode(chunk.text))
+            }
+          }
+        } catch (error) {
+          console.error("Stream error:", error)
+        } finally {
+          controller.close()
+        }
+      }
+    })
 
-    // Respond with the stream
-    return new StreamingTextResponse(stream)
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive"
+      }
+    })
   } catch (error: any) {
     let errorMessage = error.message || "An unexpected error occurred"
     const errorCode = error.status || 500
