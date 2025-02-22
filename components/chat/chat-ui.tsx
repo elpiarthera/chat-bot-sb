@@ -13,7 +13,7 @@ import useHotkey from "@/lib/hooks/use-hotkey"
 import { LLMID, MessageImage, ChatFile, ChatMessage } from "@/types"
 import { Tables } from "@/supabase/types"
 import { useParams } from "next/navigation"
-import { FC, useContext, useEffect, useState } from "react"
+import { FC, useContext, useEffect, useState, useCallback } from "react"
 import { ChatHelp } from "./chat-help"
 import { useScroll } from "./chat-hooks/use-scroll"
 import { ChatInput } from "./chat-input"
@@ -49,7 +49,7 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     scrollToTop
   } = useScroll()
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     const fetchedMessages = await getMessagesByChatId(params.chatid as string)
 
     const imagePromises: Promise<MessageImage>[] = fetchedMessages.flatMap(
@@ -94,12 +94,14 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     )
 
     const messageFileItems = await Promise.all(messageFileItemPromises)
-
     const uniqueFileItems = messageFileItems.flatMap(item => item.file_items)
-    setChat(prevChat => ({
-      ...prevChat,
-      chatFileItems: uniqueFileItems
+
+    // Transform messages to match ChatMessage type
+    const transformedMessages: ChatMessage[] = fetchedMessages.map(message => ({
+      message,
+      fileItems: []
     }))
+    setChatMessages(transformedMessages)
 
     const chatFilesResponse = await getChatFilesByChatId(
       params.chatid as string
@@ -147,9 +149,9 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
       ...prevChat,
       chatMessages: fetchedChatMessages
     }))
-  }
+  }, [params.chatid, setChat, setChatMessages])
 
-  const fetchChat = async () => {
+  const fetchChat = useCallback(async () => {
     const chat = await getChatById(params.chatid as string)
     if (!chat) return
 
@@ -187,14 +189,14 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
         embeddingsProvider: chat.embeddings_provider as "openai" | "local"
       }
     }))
-  }
+  }, [params.chatid, setSelectedChat, setChat])
 
-  const handleFocusChatInput = () => {
+  const handleFocusChatInput = useCallback(() => {
     const chatInput = document.getElementById("chat-input")
     if (chatInput) {
       chatInput.focus()
     }
-  }
+  }, [])
 
   useEffect(() => {
     ;(async () => {

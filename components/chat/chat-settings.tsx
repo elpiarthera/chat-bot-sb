@@ -41,23 +41,30 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   useEffect(() => {
     if (!chat.settings) return
 
+    const newSettings = {
+      ...chat.settings,
+      temperature: Math.min(
+        chat.settings.temperature,
+        CHAT_SETTING_LIMITS[chat.settings.model]?.MAX_TEMPERATURE || 1
+      ),
+      contextLength: Math.min(
+        chat.settings.contextLength,
+        CHAT_SETTING_LIMITS[chat.settings.model]?.MAX_CONTEXT_LENGTH || 4096
+      )
+    }
+
+    // Ensure model is always defined
+    if (!newSettings.model) {
+      newSettings.model = "gpt-3.5-turbo" as LLMID // Default model
+    }
+
     setChat(prevChat => ({
       ...prevChat,
-      settings: {
-        ...chat.settings,
-        temperature: Math.min(
-          chat.settings.temperature,
-          CHAT_SETTING_LIMITS[chat.settings.model]?.MAX_TEMPERATURE || 1
-        ),
-        contextLength: Math.min(
-          chat.settings.contextLength,
-          CHAT_SETTING_LIMITS[chat.settings.model]?.MAX_CONTEXT_LENGTH || 4096
-        )
-      }
+      settings: newSettings
     }))
   }, [chat.settings?.model])
 
-  if (!chat.settings) return null
+  if (!chat.settings?.model) return null
 
   const allModels = [
     ...models.map(model => ({
@@ -72,7 +79,8 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
     ...availableOpenRouterModels
   ]
 
-  const fullModel = allModels.find(llm => llm.modelId === chat.settings.model)
+  const fullModel =
+    allModels.find(llm => llm.modelId === chat.settings?.model) || allModels[0]
 
   return (
     <Popover>

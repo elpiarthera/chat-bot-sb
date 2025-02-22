@@ -14,27 +14,25 @@ export const useScroll = () => {
   const messagesStartRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const isAutoScrolling = useRef(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   const [isAtTop, setIsAtTop] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [userScrolled, setUserScrolled] = useState(false)
   const [isOverflowing, setIsOverflowing] = useState(false)
 
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollToBottom = useCallback(() => {
+    const scrollElement = scrollRef.current
+    if (!scrollElement) return
 
-  useEffect(() => {
-    setUserScrolled(false)
+    scrollElement.scrollTop = scrollElement.scrollHeight
+  }, [])
 
-    if (!isGenerating && userScrolled) {
-      setUserScrolled(false)
+  const scrollToTop = useCallback(() => {
+    if (messagesStartRef.current) {
+      messagesStartRef.current.scrollIntoView({ behavior: "instant" })
     }
-  }, [isGenerating, userScrolled])
-
-  useEffect(() => {
-    if (isGenerating && !userScrolled) {
-      scrollToBottom()
-    }
-  }, [chatMessages])
+  }, [])
 
   const handleScroll = useCallback((event: Event) => {
     const target = event.target as HTMLDivElement
@@ -48,18 +46,19 @@ export const useScroll = () => {
     setUserScrolled(!isBottom)
   }, [])
 
-  const scrollToTop = useCallback(() => {
-    if (messagesStartRef.current) {
-      messagesStartRef.current.scrollIntoView({ behavior: "instant" })
+  useEffect(() => {
+    setUserScrolled(false)
+
+    if (!isGenerating && userScrolled) {
+      setUserScrolled(false)
     }
-  }, [])
+  }, [isGenerating, userScrolled])
 
-  const scrollToBottom = useCallback(() => {
-    const scrollElement = scrollRef.current
-    if (!scrollElement) return
-
-    scrollElement.scrollTop = scrollElement.scrollHeight
-  }, [])
+  useEffect(() => {
+    if (isGenerating && !userScrolled) {
+      scrollToBottom()
+    }
+  }, [isGenerating, userScrolled, scrollToBottom])
 
   useEffect(() => {
     const scrollElement = scrollRef.current
