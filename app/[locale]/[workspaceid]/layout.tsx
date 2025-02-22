@@ -45,68 +45,70 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   const [loading, setLoading] = useState(true)
 
   const fetchWorkspaceData = async (workspaceId: string) => {
-    setLoading(true)
+    try {
+      setLoading(true)
 
-    const workspace = await getWorkspaceById(workspaceId)
-    setSelectedWorkspace(workspace)
+      // Fetch workspace first
+      const workspace = await getWorkspaceById(workspaceId)
+      setSelectedWorkspace(workspace)
 
-    const assistantData = await getAssistantWorkspacesByWorkspaceId(workspaceId)
-    setAssistants(assistantData.assistants)
+      // Group related fetches together with Promise.all to control concurrency
+      const [assistantData, chats, collections, folders] = await Promise.all([
+        getAssistantWorkspacesByWorkspaceId(workspaceId),
+        getChatsByWorkspaceId(workspaceId),
+        getCollectionWorkspacesByWorkspaceId(workspaceId),
+        getFoldersByWorkspaceId(workspaceId)
+      ])
 
-    for (const assistant of assistantData.assistants) {
-      if (assistant.image_path) {
-        const imageUrl = await getAssistantImageFromStorage(
-          assistant.image_path
-        )
-        if (imageUrl) {
-          setAssistantImages(prev => ({
-            ...prev,
-            [assistant.id]: imageUrl
-          }))
+      setAssistants(assistantData.assistants)
+      setChats(chats)
+      setCollections(collections.collections)
+      setFolders(folders)
+
+      // Second batch of fetches
+      const [files, presets, prompts, tools, models] = await Promise.all([
+        getFileWorkspacesByWorkspaceId(workspaceId),
+        getPresetWorkspacesByWorkspaceId(workspaceId),
+        getPromptWorkspacesByWorkspaceId(workspaceId),
+        getToolWorkspacesByWorkspaceId(workspaceId),
+        getModelWorkspacesByWorkspaceId(workspaceId)
+      ])
+
+      setFiles(files.files)
+      setPresets(presets.presets)
+      setPrompts(prompts.prompts)
+      setTools(tools.tools)
+      setModels(models.models)
+
+      // Handle assistant images separately to avoid too many concurrent requests
+      for (const assistant of assistantData.assistants) {
+        if (assistant.image_path) {
+          const imageUrl = await getAssistantImageFromStorage(
+            assistant.image_path
+          )
+          if (imageUrl) {
+            setAssistantImages(prev => ({
+              ...prev,
+              [assistant.id]: imageUrl
+            }))
+          }
         }
       }
+    } catch (error) {
+      console.error("Error fetching workspace data:", error)
+    } finally {
+      setLoading(false)
     }
-
-    const chats = await getChatsByWorkspaceId(workspaceId)
-    setChats(chats)
-
-    const collections = await getCollectionWorkspacesByWorkspaceId(workspaceId)
-    setCollections(collections.collections)
-
-    const folders = await getFoldersByWorkspaceId(workspaceId)
-    setFolders(folders)
-
-    const files = await getFileWorkspacesByWorkspaceId(workspaceId)
-    setFiles(files.files)
-
-    const presets = await getPresetWorkspacesByWorkspaceId(workspaceId)
-    setPresets(presets.presets)
-
-    const prompts = await getPromptWorkspacesByWorkspaceId(workspaceId)
-    setPrompts(prompts.prompts)
-
-    const tools = await getToolWorkspacesByWorkspaceId(workspaceId)
-    setTools(tools.tools)
-
-    const models = await getModelWorkspacesByWorkspaceId(workspaceId)
-    setModels(models.models)
-
-    setLoading(false)
   }
 
+  // Combine the two useEffects into one
   useEffect(() => {
-    ;(async () => {
-      if (!workspaceId) {
-        router.push("/")
-      } else {
-        await fetchWorkspaceData(workspaceId)
-      }
-    })()
-  }, [workspaceId, router, fetchWorkspaceData])
+    if (!workspaceId) {
+      router.push("/")
+      return
+    }
 
-  useEffect(() => {
-    ;(async () => await fetchWorkspaceData(workspaceId))()
-
+    // Reset chat state
     setChat(prevChat => ({
       ...prevChat,
       userInput: "",
@@ -120,7 +122,10 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
       newMessageImages: [],
       showFilesDisplay: false
     }))
-  }, [workspaceId, fetchWorkspaceData, setChat])
+
+    // Fetch workspace data
+    fetchWorkspaceData(workspaceId)
+  }, [workspaceId])
 
   if (loading) {
     return <Loading />

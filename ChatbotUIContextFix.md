@@ -509,3 +509,107 @@ These additional type safety improvements help prevent runtime errors and provid
    - Avoids type casting that could lead to runtime errors
 
 This solution provides a type-safe way to handle scroll events while maintaining good performance characteristics and proper cleanup.
+
+## Resource Exhaustion Errors in Workspace Layout
+
+1. **Resource Exhaustion Issues:**
+   - **Errors Encountered:**
+     ```
+     Failed to load resource: net::ERR_INSUFFICIENT_RESOURCES
+     Uncaught (in promise) Error: TypeError: Failed to fetch
+     ```
+   - **Root Causes:**
+     - Multiple concurrent requests overwhelming the browser
+     - Double fetching of workspace data due to multiple useEffect hooks
+     - Uncontrolled parallel requests for various workspace resources
+     - No error handling for failed requests
+
+2. **Issues in `layout.tsx`:**
+   - Two separate `useEffect` hooks both calling `fetchWorkspaceData`
+   - Sequential, uncontrolled API calls for different workspace resources
+   - No batching of related requests
+   - Missing error handling
+   - Lack of request optimization
+
+3. **Solutions Implemented:**
+
+   a. **Request Batching and Concurrency Control:**
+   ```typescript
+   // Group related fetches together with Promise.all
+   const [
+     assistantData,
+     chats,
+     collections,
+     folders
+   ] = await Promise.all([
+     getAssistantWorkspacesByWorkspaceId(workspaceId),
+     getChatsByWorkspaceId(workspaceId),
+     getCollectionWorkspacesByWorkspaceId(workspaceId),
+     getFoldersByWorkspaceId(workspaceId)
+   ])
+   ```
+
+   b. **Proper Error Handling:**
+   ```typescript
+   try {
+     // Fetch operations
+   } catch (error) {
+     console.error("Error fetching workspace data:", error)
+   } finally {
+     setLoading(false)
+   }
+   ```
+
+   c. **Eliminated Double Fetching:**
+   - Combined multiple `useEffect` hooks into one
+   - Removed redundant fetch calls
+   ```typescript
+   useEffect(() => {
+     if (!workspaceId) {
+       router.push("/")
+       return
+     }
+     
+     // Reset chat state
+     setChat(prevChat => ({
+       ...prevChat,
+       // ... reset properties
+     }))
+
+     // Single fetch call
+     fetchWorkspaceData(workspaceId)
+   }, [workspaceId])
+   ```
+
+   d. **Optimized Resource Loading:**
+   - Separated heavy operations (like image loading) from main data fetching
+   - Implemented sequential loading for resource-intensive operations
+   ```typescript
+   // Handle assistant images separately
+   for (const assistant of assistantData.assistants) {
+     if (assistant.image_path) {
+       const imageUrl = await getAssistantImageFromStorage(
+         assistant.image_path
+       )
+       // ... handle image
+     }
+   }
+   ```
+
+4. **Benefits of the Solution:**
+   - Reduced number of concurrent requests
+   - Better resource management
+   - Improved error handling and recovery
+   - More efficient data loading
+   - Better user experience with proper loading states
+   - Eliminated redundant API calls
+
+5. **Additional Recommendations:**
+   - Implement request caching for frequently accessed data
+   - Add retry logic for failed requests
+   - Implement proper error handling UI
+   - Consider pagination for large datasets
+   - Monitor and optimize resource usage
+   - Implement request debouncing where appropriate
+
+These changes significantly improved the application's performance and reliability by preventing resource exhaustion and providing better error handling.
