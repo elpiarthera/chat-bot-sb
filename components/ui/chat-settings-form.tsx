@@ -33,7 +33,7 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
   useAdvancedDropdown = true,
   showTooltip = true
 }) => {
-  const { profile, models } = useContext(ChatbotUIContext)
+  const { profile } = useContext(ChatbotUIContext)
 
   if (!profile) return null
 
@@ -54,7 +54,7 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
         <Label>Prompt</Label>
 
         <TextareaAutosize
-          className="bg-background border-input border-2"
+          className="bg-background border-input w-full rounded-md border-2 p-2"
           placeholder="You are a helpful AI assistant."
           onValueChange={prompt => {
             onChangeChatSettings({ ...chatSettings, prompt })
@@ -116,12 +116,10 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
   }
 
   return (
-    <div className="mt-5">
+    <div className="mt-5 space-y-6">
       <div className="space-y-3">
         <Label className="flex items-center space-x-1">
-          <div>Temperature:</div>
-
-          <div>{chatSettings.temperature}</div>
+          <div>Temperature: {chatSettings.temperature}</div>
         </Label>
 
         <Slider
@@ -135,14 +133,13 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
           min={MODEL_LIMITS.MIN_TEMPERATURE}
           max={MODEL_LIMITS.MAX_TEMPERATURE}
           step={0.01}
+          className="w-full"
         />
       </div>
 
-      <div className="mt-6 space-y-3">
+      <div className="space-y-3">
         <Label className="flex items-center space-x-1">
-          <div>Context Length:</div>
-
-          <div>{chatSettings.contextLength}</div>
+          <div>Context Length: {chatSettings.contextLength}</div>
         </Label>
 
         <Slider
@@ -161,11 +158,13 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
               : MODEL_LIMITS.MAX_CONTEXT_LENGTH
           }
           step={1}
+          className="w-full"
         />
       </div>
 
-      <div className="mt-7 flex items-center space-x-2">
+      <div className="flex items-center space-x-2">
         <Checkbox
+          id="profile-context"
           checked={chatSettings.includeProfileContext}
           onCheckedChange={(value: boolean) =>
             onChangeChatSettings({
@@ -175,7 +174,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
           }
         />
 
-        <Label>Chats Include Profile Context</Label>
+        <Label htmlFor="profile-context">Chats Include Profile Context</Label>
 
         {showTooltip && (
           <WithTooltip
@@ -186,14 +185,18 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
               </div>
             }
             trigger={
-              <IconInfoCircle className="cursor-hover:opacity-50" size={16} />
+              <IconInfoCircle
+                className="cursor-pointer hover:opacity-50"
+                size={16}
+              />
             }
           />
         )}
       </div>
 
-      <div className="mt-4 flex items-center space-x-2">
+      <div className="flex items-center space-x-2">
         <Checkbox
+          id="workspace-instructions"
           checked={chatSettings.includeWorkspaceInstructions}
           onCheckedChange={(value: boolean) =>
             onChangeChatSettings({
@@ -203,7 +206,9 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
           }
         />
 
-        <Label>Chats Include Workspace Instructions</Label>
+        <Label htmlFor="workspace-instructions">
+          Chats Include Workspace Instructions
+        </Label>
 
         {showTooltip && (
           <WithTooltip
@@ -215,13 +220,16 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
               </div>
             }
             trigger={
-              <IconInfoCircle className="cursor-hover:opacity-50" size={16} />
+              <IconInfoCircle
+                className="cursor-pointer hover:opacity-50"
+                size={16}
+              />
             }
           />
         )}
       </div>
 
-      <div className="mt-5">
+      <div className="space-y-2">
         <Label>Embeddings Provider</Label>
 
         <Select
@@ -233,7 +241,7 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
             })
           }}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue defaultValue="openai" />
           </SelectTrigger>
 

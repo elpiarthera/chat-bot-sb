@@ -9,7 +9,7 @@ import { getMessagesByChatId } from "@/db/messages"
 import { getMessageImageFromStorage } from "@/db/storage/message-images"
 import { convertBlobToBase64 } from "@/lib/blob-to-b64"
 import useHotkey from "@/lib/hooks/use-hotkey"
-import { LLMID, MessageImage } from "@/types"
+import { LLMID, MessageImage, ModelProvider } from "@/types"
 import { useParams } from "next/navigation"
 import { FC, useContext, useEffect, useState } from "react"
 import { ChatHelp } from "./chat-help"
@@ -18,11 +18,29 @@ import { ChatInput } from "./chat-input"
 import { ChatMessages } from "./chat-messages"
 import { ChatScrollButtons } from "./chat-scroll-buttons"
 import { ChatSecondaryButtons } from "./chat-secondary-buttons"
+import { ChatSettings } from "./chat-settings"
+import { QuickSettings } from "./quick-settings"
+import { IconMenu2 } from "@tabler/icons-react"
+import { Button } from "../ui/button"
+import { ModelIcon } from "../models/model-icon"
+import { LLM_LIST } from "@/lib/models/llm/llm-list"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger
+} from "../ui/dropdown-menu"
+import { ModelSelect } from "../models/model-select"
 
 interface ChatUIProps {}
 
 export const ChatUI: FC<ChatUIProps> = ({}) => {
   useHotkey("o", () => handleNewChat())
+
+  const handleToggleSidebar = () => {
+    const currentState = localStorage.getItem("showSidebar") === "true"
+    localStorage.setItem("showSidebar", String(!currentState))
+    window.dispatchEvent(new Event("storage"))
+  }
 
   const params = useParams()
 
@@ -38,7 +56,12 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     setChatFiles,
     setShowFilesDisplay,
     setUseRetrieval,
-    setSelectedTools
+    setSelectedTools,
+    chatSettings,
+    models,
+    availableHostedModels,
+    availableLocalModels,
+    availableOpenRouterModels
   } = useContext(ChatbotUIContext)
 
   const { handleNewChat, handleFocusChatInput } = useChatHandler()
@@ -56,6 +79,28 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
   } = useScroll()
 
   const [loading, setLoading] = useState(true)
+
+  const allModels = [
+    ...models.map(model => ({
+      modelId: model.model_id as LLMID,
+      modelName: model.name,
+      provider: "custom" as ModelProvider,
+      hostedId: model.id,
+      platformLink: "",
+      imageInput: false
+    })),
+    ...availableHostedModels,
+    ...availableLocalModels,
+    ...availableOpenRouterModels
+  ]
+
+  const currentModel = allModels.find(
+    model => model.modelId === chatSettings?.model
+  )
+
+  const modelDetails = LLM_LIST.find(
+    model => model.modelId === chatSettings?.model
+  )
 
   useEffect(() => {
     const fetchData = async () => {
@@ -194,17 +239,19 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
 
   return (
     <div className="relative flex h-full flex-col items-center">
-      <div className="absolute left-4 top-2.5 flex justify-center">
-        <ChatScrollButtons
-          isAtTop={isAtTop}
-          isAtBottom={isAtBottom}
-          isOverflowing={isOverflowing}
-          scrollToTop={scrollToTop}
-          scrollToBottom={scrollToBottom}
-        />
+      <div className="absolute left-4 top-2.5">
+        <Button
+          className="size-[40px] p-2"
+          variant="ghost"
+          onClick={handleToggleSidebar}
+        >
+          <IconMenu2 />
+        </Button>
       </div>
 
-      <div className="absolute right-4 top-1 flex h-[40px] items-center space-x-2">
+      <div className="absolute right-4 top-2.5 flex h-[40px] items-center space-x-2">
+        <ChatSettings />
+        <QuickSettings />
         <ChatSecondaryButtons />
       </div>
 
@@ -223,6 +270,16 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
         <div ref={messagesStartRef} />
         <ChatMessages />
         <div ref={messagesEndRef} />
+
+        <div className="absolute right-8 top-[50%] flex flex-col space-y-2">
+          <ChatScrollButtons
+            isAtTop={isAtTop}
+            isAtBottom={isAtBottom}
+            isOverflowing={isOverflowing}
+            scrollToTop={scrollToTop}
+            scrollToBottom={scrollToBottom}
+          />
+        </div>
       </div>
 
       <div className="relative w-full min-w-[300px] items-end px-2 pb-3 pt-0 sm:w-[600px] sm:pb-8 sm:pt-5 md:w-[700px] lg:w-[700px] xl:w-[800px]">
