@@ -2,7 +2,6 @@ import Loading from "@/app/[locale]/loading"
 import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { getAssistantToolsByAssistantId } from "@/db/assistant-tools"
-import { getAssistantById } from "@/db/assistants"
 import { getChatFilesByChatId } from "@/db/chat-files"
 import { getChatById } from "@/db/chats"
 import { getMessageFileItemsByMessageId } from "@/db/message-file-items"
@@ -10,38 +9,44 @@ import { getMessagesByChatId } from "@/db/messages"
 import { getMessageImageFromStorage } from "@/db/storage/message-images"
 import { convertBlobToBase64 } from "@/lib/blob-to-b64"
 import useHotkey from "@/lib/hooks/use-hotkey"
-import { LLMID, MessageImage, ChatFile, ChatMessage } from "@/types"
-import { Tables } from "@/supabase/types"
+import { LLMID, MessageImage } from "@/types"
 import { useParams } from "next/navigation"
-import { FC, useContext, useEffect, useState, useCallback } from "react"
+import { FC, useContext, useEffect, useState } from "react"
 import { ChatHelp } from "./chat-help"
 import { useScroll } from "./chat-hooks/use-scroll"
 import { ChatInput } from "./chat-input"
 import { ChatMessages } from "./chat-messages"
 import { ChatScrollButtons } from "./chat-scroll-buttons"
 import { ChatSecondaryButtons } from "./chat-secondary-buttons"
-import { ChatSettings } from "./chat-settings"
 
 interface ChatUIProps {}
 
 export const ChatUI: FC<ChatUIProps> = ({}) => {
+  useHotkey("o", () => handleNewChat())
+
   const params = useParams()
+
   const {
-    setChat,
-    chatMessages,
     setChatMessages,
     selectedChat,
     setSelectedChat,
-    chatImages,
-    setChatImages
+    setChatSettings,
+    setChatImages,
+    assistants,
+    setSelectedAssistant,
+    setChatFileItems,
+    setChatFiles,
+    setShowFilesDisplay,
+    setUseRetrieval,
+    setSelectedTools
   } = useContext(ChatbotUIContext)
 
-  const [loading, setLoading] = useState(true)
+  const { handleNewChat, handleFocusChatInput } = useChatHandler()
 
   const {
     messagesStartRef,
     messagesEndRef,
-    scrollRef,
+    handleScroll,
     scrollToBottom,
     setIsAtBottom,
     isAtTop,
@@ -50,7 +55,28 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     scrollToTop
   } = useScroll()
 
-  const fetchMessages = useCallback(async () => {
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      await fetchMessages()
+      await fetchChat()
+
+      scrollToBottom()
+      setIsAtBottom(true)
+    }
+
+    if (params.chatid) {
+      fetchData().then(() => {
+        handleFocusChatInput()
+        setLoading(false)
+      })
+    } else {
+      setLoading(false)
+    }
+  }, [])
+
+  const fetchMessages = async () => {
     const fetchedMessages = await getMessagesByChatId(params.chatid as string)
 
     const imagePromises: Promise<MessageImage>[] = fetchedMessages.flatMap(
@@ -85,47 +111,31 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
     )
 
     const images: MessageImage[] = await Promise.all(imagePromises.flat())
-    setChat(prevChat => ({
-      ...prevChat,
-      chatImages: images
-    }))
+    setChatImages(images)
 
     const messageFileItemPromises = fetchedMessages.map(
       async message => await getMessageFileItemsByMessageId(message.id)
     )
 
     const messageFileItems = await Promise.all(messageFileItemPromises)
+
     const uniqueFileItems = messageFileItems.flatMap(item => item.file_items)
+    setChatFileItems(uniqueFileItems)
 
-    // Transform messages to match ChatMessage type
-    const transformedMessages: ChatMessage[] = fetchedMessages.map(message => ({
-      message,
-      fileItems: []
-    }))
-    setChatMessages(transformedMessages)
+    const chatFiles = await getChatFilesByChatId(params.chatid as string)
 
-    const chatFilesResponse = await getChatFilesByChatId(
-      params.chatid as string
-    )
-    const chatFiles = chatFilesResponse.files
-
-    setChat(prevChat => ({
-      ...prevChat,
-      chatFiles: chatFiles.map((file: Tables<"files">) => ({
-        content: file.name,
-        created_at: file.created_at,
-        file_id: file.id,
+    setChatFiles(
+      chatFiles.files.map(file => ({
         id: file.id,
-        local_embedding: null,
-        openai_embedding: null,
-        sharing: file.sharing,
-        tokens: file.tokens,
-        updated_at: file.updated_at,
-        user_id: file.user_id
-      })),
-      useRetrieval: true,
-      showFilesDisplay: true
-    }))
+        name: file.name,
+        type: file.type,
+        description: file.name,
+        file: null
+      }))
+    )
+
+    setUseRetrieval(true)
+    setShowFilesDisplay(true)
 
     const fetchedChatMessages = fetchedMessages.map(message => {
       return {
@@ -133,89 +143,50 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
         fileItems: messageFileItems
           .filter(messageFileItem => messageFileItem.id === message.id)
           .flatMap(messageFileItem =>
-            messageFileItem.file_items.map(
-              fileItem =>
-                ({
-                  id: fileItem.id,
-                  name: fileItem.content,
-                  type: "text",
-                  file: null
-                }) as ChatFile
-            )
+            messageFileItem.file_items.map(fileItem => ({
+              id: fileItem.id,
+              name: fileItem.content,
+              type: "text",
+              description: fileItem.content,
+              file: null
+            }))
           )
-      } as ChatMessage
+      }
     })
 
-    setChat(prevChat => ({
-      ...prevChat,
-      chatMessages: fetchedChatMessages
-    }))
-  }, [params.chatid, setChat, setChatMessages])
+    setChatMessages(fetchedChatMessages)
+  }
 
-  const fetchChat = useCallback(async () => {
+  const fetchChat = async () => {
     const chat = await getChatById(params.chatid as string)
     if (!chat) return
 
-    setSelectedChat(chat)
-
     if (chat.assistant_id) {
-      const assistantResult = await getAssistantById(chat.assistant_id)
-      if (assistantResult && "assistant" in assistantResult) {
-        const assistant = assistantResult.assistant as Tables<"assistants">
+      const assistant = assistants.find(
+        assistant => assistant.id === chat.assistant_id
+      )
 
-        setChat(prevChat => ({
-          ...prevChat,
-          selectedAssistant: assistant
-        }))
+      if (assistant) {
+        setSelectedAssistant(assistant)
 
         const assistantTools = (
           await getAssistantToolsByAssistantId(assistant.id)
         ).tools
-        setChat(prevChat => ({
-          ...prevChat,
-          selectedTools: assistantTools
-        }))
+        setSelectedTools(assistantTools)
       }
     }
 
-    setChat(prevChat => ({
-      ...prevChat,
-      chatSettings: {
-        model: chat.model as LLMID,
-        prompt: chat.prompt,
-        temperature: chat.temperature,
-        contextLength: chat.context_length,
-        includeProfileContext: chat.include_profile_context,
-        includeWorkspaceInstructions: chat.include_workspace_instructions,
-        embeddingsProvider: chat.embeddings_provider as "openai" | "local"
-      }
-    }))
-  }, [params.chatid, setSelectedChat, setChat])
-
-  const handleFocusChatInput = useCallback(() => {
-    const chatInput = document.getElementById("chat-input")
-    if (chatInput) {
-      chatInput.focus()
-    }
-  }, [])
-
-  useEffect(() => {
-    ;(async () => {
-      if (!params.chatid) return
-      await fetchChat()
-      await fetchMessages()
-      handleFocusChatInput()
-      scrollToBottom()
-      setIsAtBottom(true)
-    })()
-  }, [
-    params.chatid,
-    fetchChat,
-    fetchMessages,
-    handleFocusChatInput,
-    scrollToBottom,
-    setIsAtBottom
-  ])
+    setSelectedChat(chat)
+    setChatSettings({
+      model: chat.model as LLMID,
+      prompt: chat.prompt,
+      temperature: chat.temperature,
+      contextLength: chat.context_length,
+      includeProfileContext: chat.include_profile_context,
+      includeWorkspaceInstructions: chat.include_workspace_instructions,
+      embeddingsProvider: chat.embeddings_provider as "openai" | "local"
+    })
+  }
 
   if (loading) {
     return <Loading />
@@ -233,8 +204,7 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
         />
       </div>
 
-      <div className="absolute right-4 top-2 flex h-[40px] items-center space-x-3">
-        <ChatSettings />
+      <div className="absolute right-4 top-1 flex h-[40px] items-center space-x-2">
         <ChatSecondaryButtons />
       </div>
 
@@ -246,7 +216,9 @@ export const ChatUI: FC<ChatUIProps> = ({}) => {
 
       <div
         className="flex size-full flex-col overflow-auto border-b"
-        ref={scrollRef}
+        onScroll={(e: React.UIEvent<HTMLDivElement>) =>
+          handleScroll(e.nativeEvent)
+        }
       >
         <div ref={messagesStartRef} />
         <ChatMessages />
