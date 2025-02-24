@@ -190,9 +190,21 @@ interface ChatbotUIContext {
     hashtagCommand: string
     focusPrompt: boolean
     focusFile: boolean
-    // ... other chat properties
   }
-  setChat: (chat: any) => void
+  setChat: (update: (prev: any) => any) => void
+}
+
+export const initialChatState = {
+  userInput: "",
+  chatMessages: [],
+  selectedChat: null,
+  isGenerating: false,
+  firstTokenReceived: false,
+  chatFiles: [],
+  chatImages: [],
+  newMessageFiles: [],
+  newMessageImages: [],
+  showFilesDisplay: false
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({

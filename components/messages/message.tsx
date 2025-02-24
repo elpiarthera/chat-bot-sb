@@ -49,6 +49,7 @@ export const Message: FC<MessageProps> = ({
     assistants,
     profile,
     isGenerating,
+    setIsGenerating,
     setChat,
     firstTokenReceived,
     availableLocalModels,
@@ -104,10 +105,7 @@ export const Message: FC<MessageProps> = ({
   }
 
   const handleRegenerate = async () => {
-    setChat(prevChat => ({
-      ...prevChat,
-      isGenerating: true
-    }))
+    setIsGenerating(true)
     await handleSendMessage(
       editedMessage || chatMessages[chatMessages.length - 2].message.content,
       chatMessages,
