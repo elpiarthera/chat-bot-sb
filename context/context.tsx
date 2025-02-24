@@ -179,6 +179,20 @@ interface ChatbotUIContext {
   setFirstTokenReceived: Dispatch<SetStateAction<boolean>>
   isGenerating: boolean
   setIsGenerating: Dispatch<SetStateAction<boolean>>
+
+  // Add chat object
+  chat: {
+    isGenerating: boolean
+    newMessageFiles: ChatFile[]
+    chatFiles: ChatFile[]
+    slashCommand: string
+    isFilePickerOpen: boolean
+    hashtagCommand: string
+    focusPrompt: boolean
+    focusFile: boolean
+    // ... other chat properties
+  }
+  setChat: (chat: any) => void
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({
@@ -304,5 +318,18 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   firstTokenReceived: false,
   setFirstTokenReceived: () => {},
   isGenerating: false,
-  setIsGenerating: () => {}
+  setIsGenerating: () => {},
+
+  // Add chat object
+  chat: {
+    isGenerating: false,
+    newMessageFiles: [],
+    chatFiles: [],
+    slashCommand: "",
+    isFilePickerOpen: false,
+    hashtagCommand: "",
+    focusPrompt: false,
+    focusFile: false
+  },
+  setChat: () => {}
 })
