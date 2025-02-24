@@ -26,10 +26,11 @@ interface WorkspaceLayoutProps {
 
 export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
   const router = useRouter()
-  const { workspaceid } = useParams()
-  const workspaceId = workspaceid as string
+  const params = useParams()
+  const searchParams = useSearchParams()
+  const workspaceId = params.workspaceid as string
   const {
-    setChat,
+    setChatSettings,
     setAssistants,
     setAssistantImages,
     setChats,
@@ -40,7 +41,18 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
     setPrompts,
     setTools,
     setModels,
-    setSelectedWorkspace
+    setSelectedWorkspace,
+    setUserInput,
+    setChatMessages,
+    setSelectedChat,
+    setIsGenerating,
+    setFirstTokenReceived,
+    setChatFiles,
+    setChatImages,
+    setNewMessageFiles,
+    setNewMessageImages,
+    setShowFilesDisplay,
+    selectedWorkspace
   } = useContext(ChatbotUIContext)
   const [loading, setLoading] = useState(true)
 
@@ -94,6 +106,23 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
           }
         }
       }
+
+      // Add chat settings at the end
+      setChatSettings({
+        model: (searchParams.get("model") ||
+          workspace?.default_model ||
+          "gpt-4-1106-preview") as LLMID,
+        prompt:
+          workspace?.default_prompt ||
+          "You are a friendly, helpful AI assistant.",
+        temperature: workspace?.default_temperature || 0.5,
+        contextLength: workspace?.default_context_length || 4096,
+        includeProfileContext: workspace?.include_profile_context || true,
+        includeWorkspaceInstructions:
+          workspace?.include_workspace_instructions || true,
+        embeddingsProvider:
+          (workspace?.embeddings_provider as "openai" | "local") || "openai"
+      })
     } catch (error) {
       console.error("Error fetching workspace data:", error)
     } finally {
@@ -108,24 +137,34 @@ export default function WorkspaceLayout({ children }: WorkspaceLayoutProps) {
       return
     }
 
-    // Reset chat state
-    setChat(prevChat => ({
-      ...prevChat,
-      userInput: "",
-      messages: [],
-      selectedChat: null,
-      isGenerating: false,
-      firstTokenReceived: false,
-      chatFiles: [],
-      chatImages: [],
-      newMessageFiles: [],
-      newMessageImages: [],
-      showFilesDisplay: false
-    }))
+    // Reset chat state using individual setters
+    setUserInput("")
+    setChatMessages([])
+    setSelectedChat(null)
+    setIsGenerating(false)
+    setFirstTokenReceived(false)
+    setChatFiles([])
+    setChatImages([])
+    setNewMessageFiles([])
+    setNewMessageImages([])
+    setShowFilesDisplay(false)
 
     // Fetch workspace data
     fetchWorkspaceData(workspaceId)
   }, [workspaceId])
+
+  // Add session check effect
+  useEffect(() => {
+    ;(async () => {
+      const session = (await supabase.auth.getSession()).data.session
+
+      if (!session) {
+        return router.push("/login")
+      } else {
+        await fetchWorkspaceData(workspaceId)
+      }
+    })()
+  }, [])
 
   if (loading) {
     return <Loading />

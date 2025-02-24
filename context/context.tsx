@@ -173,12 +173,12 @@ interface ChatbotUIContext {
   setChatFileItems: Dispatch<SetStateAction<Tables<"file_items">[]>>
 
   // ACTIVE CHAT STORE
-  isGenerating: boolean
-  setIsGenerating: Dispatch<SetStateAction<boolean>>
-  firstTokenReceived: boolean
-  setFirstTokenReceived: Dispatch<SetStateAction<boolean>>
   abortController: AbortController | null
   setAbortController: Dispatch<SetStateAction<AbortController | null>>
+  firstTokenReceived: boolean
+  setFirstTokenReceived: Dispatch<SetStateAction<boolean>>
+  isGenerating: boolean
+  setIsGenerating: Dispatch<SetStateAction<boolean>>
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({
@@ -299,10 +299,10 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setChatFileItems: () => {},
 
   // ACTIVE CHAT STORE
-  isGenerating: false,
-  setIsGenerating: () => {},
+  abortController: null,
+  setAbortController: () => {},
   firstTokenReceived: false,
   setFirstTokenReceived: () => {},
-  abortController: null,
-  setAbortController: () => {}
+  isGenerating: false,
+  setIsGenerating: () => {}
 })
