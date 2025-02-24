@@ -1,4 +1,3 @@
-import { generateLocalEmbedding } from "@/lib/generate-local-embedding"
 import {
   processCSV,
   processJSON,
@@ -58,19 +57,17 @@ export async function POST(req: Request) {
     const blob = new Blob([fileBuffer])
     const fileExtension = fileMetadata.name.split(".").pop()?.toLowerCase()
 
-    if (embeddingsProvider === "openai") {
-      try {
-        if (profile.use_azure_openai) {
-          checkApiKey(profile.azure_openai_api_key, "Azure OpenAI")
-        } else {
-          checkApiKey(profile.openai_api_key, "OpenAI")
-        }
-      } catch (error: any) {
-        error.message =
-          error.message +
-          ", make sure it is configured or else use local embeddings"
-        throw error
+    try {
+      if (profile.use_azure_openai) {
+        checkApiKey(profile.azure_openai_api_key, "Azure OpenAI")
+      } else {
+        checkApiKey(profile.openai_api_key, "OpenAI")
       }
+    } catch (error: any) {
+      error.message =
+        error.message +
+        ", make sure it is configured or else use local embeddings"
+      throw error
     }
 
     let chunks: FileItemChunk[] = []
@@ -123,18 +120,8 @@ export async function POST(req: Request) {
       embeddings = response.data.map((item: any) => {
         return item.embedding
       })
-    } else if (embeddingsProvider === "local") {
-      const embeddingPromises = chunks.map(async chunk => {
-        try {
-          return await generateLocalEmbedding(chunk.content)
-        } catch (error) {
-          console.error(`Error generating embedding for chunk: ${chunk}`, error)
-
-          return null
-        }
-      })
-
-      embeddings = await Promise.all(embeddingPromises)
+    } else {
+      throw new Error("Local embeddings are not supported in this environment")
     }
 
     const file_items = chunks.map((chunk, index) => ({
@@ -142,14 +129,8 @@ export async function POST(req: Request) {
       user_id: profile.user_id,
       content: chunk.content,
       tokens: chunk.tokens,
-      openai_embedding:
-        embeddingsProvider === "openai"
-          ? ((embeddings[index] || null) as any)
-          : null,
-      local_embedding:
-        embeddingsProvider === "local"
-          ? ((embeddings[index] || null) as any)
-          : null
+      openai_embedding: embeddings[index] || null,
+      local_embedding: null
     }))
 
     await supabaseAdmin.from("file_items").upsert(file_items)
