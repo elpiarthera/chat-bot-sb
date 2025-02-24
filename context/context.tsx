@@ -11,9 +11,6 @@ import {
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { Dispatch, SetStateAction, createContext } from "react"
-import { ChatState, initialChatState } from "@/types/chat"
-
-export { initialChatState }
 
 /**
  * Main context for the Chatbot UI application.
@@ -113,24 +110,6 @@ interface ChatbotUIContext {
   openaiAssistants: any[] // TODO: Type this properly
   setOpenaiAssistants: Dispatch<SetStateAction<any[]>>
 
-  // PASSIVE CHAT STORE and ACTIVE CHAT STORE -> Merged inside chat: ChatState;
-  userInput: string
-  setUserInput: Dispatch<SetStateAction<string>>
-  chatMessages: ChatMessage[]
-  setChatMessages: Dispatch<SetStateAction<ChatMessage[]>>
-  chatSettings: ChatSettings | null
-  setChatSettings: Dispatch<SetStateAction<ChatSettings | null>>
-  selectedChat: Tables<"chats"> | null
-  setSelectedChat: Dispatch<SetStateAction<Tables<"chats"> | null>>
-  chatFileItems: Tables<"file_items">[]
-  setChatFileItems: Dispatch<SetStateAction<Tables<"file_items">[]>>
-  abortController: AbortController | null
-  setAbortController: Dispatch<SetStateAction<AbortController | null>>
-  firstTokenReceived: boolean
-  setFirstTokenReceived: Dispatch<SetStateAction<boolean>>
-  isGenerating: boolean
-  setIsGenerating: Dispatch<SetStateAction<boolean>>
-
   // CHAT INPUT COMMAND STORE
   isPromptPickerOpen: boolean
   setIsPromptPickerOpen: Dispatch<SetStateAction<boolean>>
@@ -181,8 +160,25 @@ interface ChatbotUIContext {
   toolInUse: string
   setToolInUse: Dispatch<SetStateAction<string>>
 
-  chat: ChatState
-  setChat: Dispatch<SetStateAction<ChatState>>
+  // PASSIVE CHAT STORE
+  userInput: string
+  setUserInput: Dispatch<SetStateAction<string>>
+  chatMessages: ChatMessage[]
+  setChatMessages: Dispatch<SetStateAction<ChatMessage[]>>
+  chatSettings: ChatSettings | null
+  setChatSettings: Dispatch<SetStateAction<ChatSettings>>
+  selectedChat: Tables<"chats"> | null
+  setSelectedChat: Dispatch<SetStateAction<Tables<"chats"> | null>>
+  chatFileItems: Tables<"file_items">[]
+  setChatFileItems: Dispatch<SetStateAction<Tables<"file_items">[]>>
+
+  // ACTIVE CHAT STORE
+  isGenerating: boolean
+  setIsGenerating: Dispatch<SetStateAction<boolean>>
+  firstTokenReceived: boolean
+  setFirstTokenReceived: Dispatch<SetStateAction<boolean>>
+  abortController: AbortController | null
+  setAbortController: Dispatch<SetStateAction<AbortController | null>>
 }
 
 export const ChatbotUIContext = createContext<ChatbotUIContext>({
@@ -240,24 +236,6 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   openaiAssistants: [],
   setOpenaiAssistants: () => {},
 
-  // PASSIVE CHAT STORE and ACTIVE CHAT STORE
-  userInput: "",
-  setUserInput: () => {},
-  chatMessages: [],
-  setChatMessages: () => {},
-  chatSettings: null,
-  setChatSettings: () => {},
-  selectedChat: null,
-  setSelectedChat: () => {},
-  chatFileItems: [],
-  setChatFileItems: () => {},
-  isGenerating: false,
-  setIsGenerating: () => {},
-  firstTokenReceived: false,
-  setFirstTokenReceived: () => {},
-  abortController: null,
-  setAbortController: () => {},
-
   // CHAT INPUT COMMAND STORE
   isPromptPickerOpen: false,
   setIsPromptPickerOpen: () => {},
@@ -308,6 +286,23 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   toolInUse: "none",
   setToolInUse: () => {},
 
-  chat: initialChatState,
-  setChat: () => {}
+  // PASSIVE CHAT STORE
+  userInput: "",
+  setUserInput: () => {},
+  chatMessages: [],
+  setChatMessages: () => {},
+  chatSettings: null,
+  setChatSettings: () => {},
+  selectedChat: null,
+  setSelectedChat: () => {},
+  chatFileItems: [],
+  setChatFileItems: () => {},
+
+  // ACTIVE CHAT STORE
+  isGenerating: false,
+  setIsGenerating: () => {},
+  firstTokenReceived: false,
+  setFirstTokenReceived: () => {},
+  abortController: null,
+  setAbortController: () => {}
 })

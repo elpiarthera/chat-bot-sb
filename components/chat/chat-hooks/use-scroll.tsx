@@ -14,18 +14,44 @@ export const useScroll = () => {
   const messagesStartRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const isAutoScrolling = useRef(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
 
   const [isAtTop, setIsAtTop] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [userScrolled, setUserScrolled] = useState(false)
   const [isOverflowing, setIsOverflowing] = useState(false)
 
-  const scrollToBottom = useCallback(() => {
-    const scrollElement = scrollRef.current
-    if (!scrollElement) return
+  useEffect(() => {
+    setUserScrolled(false)
 
-    scrollElement.scrollTop = scrollElement.scrollHeight
+    if (!isGenerating && userScrolled) {
+      setUserScrolled(false)
+    }
+  }, [isGenerating])
+
+  useEffect(() => {
+    if (isGenerating && !userScrolled) {
+      scrollToBottom()
+    }
+  }, [chatMessages])
+
+  const handleScroll: UIEventHandler<HTMLDivElement> = useCallback(e => {
+    const target = e.target as HTMLDivElement
+    const bottom =
+      Math.round(target.scrollHeight) - Math.round(target.scrollTop) ===
+      Math.round(target.clientHeight)
+    setIsAtBottom(bottom)
+
+    const top = target.scrollTop === 0
+    setIsAtTop(top)
+
+    if (!bottom && !isAutoScrolling.current) {
+      setUserScrolled(true)
+    } else {
+      setUserScrolled(false)
+    }
+
+    const isOverflow = target.scrollHeight > target.clientHeight
+    setIsOverflowing(isOverflow)
   }, [])
 
   const scrollToTop = useCallback(() => {
@@ -34,46 +60,17 @@ export const useScroll = () => {
     }
   }, [])
 
-  const handleScroll = useCallback((event: Event) => {
-    const target = event.target as HTMLDivElement
-    if (!target) return
+  const scrollToBottom = useCallback(() => {
+    isAutoScrolling.current = true
 
-    const isBottom =
-      Math.abs(target.scrollHeight - target.scrollTop - target.clientHeight) <
-      10
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "instant" })
+      }
 
-    setIsAtBottom(isBottom)
-    setUserScrolled(!isBottom)
+      isAutoScrolling.current = false
+    }, 100)
   }, [])
-
-  useEffect(() => {
-    setUserScrolled(false)
-
-    if (!isGenerating && userScrolled) {
-      setUserScrolled(false)
-    }
-  }, [isGenerating, userScrolled])
-
-  useEffect(() => {
-    if (isGenerating && !userScrolled) {
-      scrollToBottom()
-    }
-  }, [isGenerating, userScrolled, scrollToBottom])
-
-  useEffect(() => {
-    const scrollElement = scrollRef.current
-    if (!scrollElement) return
-
-    const scrollHandler = (event: Event) => handleScroll(event)
-    scrollElement.addEventListener("scroll", scrollHandler)
-    return () => scrollElement.removeEventListener("scroll", scrollHandler)
-  }, [handleScroll])
-
-  useEffect(() => {
-    if (!isGenerating && !userScrolled) {
-      scrollToBottom()
-    }
-  }, [isGenerating, userScrolled, scrollToBottom])
 
   return {
     messagesStartRef,
@@ -85,8 +82,6 @@ export const useScroll = () => {
     handleScroll,
     scrollToTop,
     scrollToBottom,
-    setIsAtBottom,
-    setUserScrolled,
-    scrollRef
+    setIsAtBottom
   }
 }

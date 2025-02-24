@@ -39,6 +39,12 @@ export const useSelectFileHandler = () => {
 
     if (!FULL_MODEL) return
 
+    // Add Azure OpenAI check
+    if (profile?.use_azure_openai) {
+      setFilesToAccept(ACCEPTED_FILE_TYPES)
+      return
+    }
+
     setFilesToAccept(
       FULL_MODEL.imageInput
         ? `${ACCEPTED_FILE_TYPES},image/*`

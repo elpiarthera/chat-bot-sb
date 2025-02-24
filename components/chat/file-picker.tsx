@@ -15,17 +15,6 @@ interface FilePickerProps {
   isFocused: boolean
 }
 
-type FileItem = {
-  id: string
-  name: string
-  type: string
-  description: string
-  created_at: string
-  sharing: string
-  updated_at: string | null
-  user_id: string
-}
-
 export const FilePicker: FC<FilePickerProps> = ({
   isOpen,
   searchQuery,
@@ -36,8 +25,8 @@ export const FilePicker: FC<FilePickerProps> = ({
   onSelectCollection,
   isFocused
 }) => {
-  const { chat, setChat } = useContext(ChatbotUIContext)
-  const { files, collections } = chat
+  const { files, collections, setIsFilePickerOpen } =
+    useContext(ChatbotUIContext)
 
   const itemsRef = useRef<(HTMLDivElement | null)[]>([])
 
@@ -47,29 +36,17 @@ export const FilePicker: FC<FilePickerProps> = ({
     }
   }, [isFocused])
 
-  const filteredFiles = files
-    .map(
-      file =>
-        ({
-          id: file.id,
-          name: file.content,
-          type: "text",
-          description: file.content,
-          created_at: file.created_at,
-          sharing: file.sharing,
-          updated_at: file.updated_at,
-          user_id: file.user_id
-        }) as FileItem
-    )
-    .filter(
-      file =>
-        file.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !selectedFileIds.includes(file.id)
-    )
+  const query = searchQuery || ""
+
+  const filteredFiles = files.filter(
+    file =>
+      file.name.toLowerCase().includes(query.toLowerCase()) &&
+      !selectedFileIds.includes(file.id)
+  )
 
   const filteredCollections = collections.filter(
     collection =>
-      collection.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      collection.name.toLowerCase().includes(query.toLowerCase()) &&
       !selectedCollectionIds.includes(collection.id)
   )
 
@@ -77,8 +54,8 @@ export const FilePicker: FC<FilePickerProps> = ({
     onOpenChange(isOpen)
   }
 
-  const handleSelectFile = (file: FileItem) => {
-    onSelectFile(file as unknown as Tables<"files">)
+  const handleSelectFile = (file: Tables<"files">) => {
+    onSelectFile(file)
     handleOpenChange(false)
   }
 
@@ -88,27 +65,20 @@ export const FilePicker: FC<FilePickerProps> = ({
   }
 
   const getKeyDownHandler =
-    (
-      index: number,
-      type: "file" | "collection",
-      item: FileItem | Tables<"collections">
-    ) =>
+    (index: number, type: "file" | "collection", item: any) =>
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === "Escape") {
         e.preventDefault()
-        setChat(prevChat => ({
-          ...prevChat,
-          isFilePickerOpen: false
-        }))
+        setIsFilePickerOpen(false)
       } else if (e.key === "Backspace") {
         e.preventDefault()
       } else if (e.key === "Enter") {
         e.preventDefault()
 
         if (type === "file") {
-          handleSelectFile(item as FileItem)
+          handleSelectFile(item)
         } else {
-          handleSelectCollection(item as Tables<"collections">)
+          handleSelectCollection(item)
         }
       } else if (
         (e.key === "Tab" || e.key === "ArrowDown") &&
@@ -152,9 +122,9 @@ export const FilePicker: FC<FilePickerProps> = ({
                   className="hover:bg-accent focus:bg-accent flex cursor-pointer items-center rounded p-2 focus:outline-none"
                   onClick={() => {
                     if ("type" in item) {
-                      handleSelectFile(item as FileItem)
+                      handleSelectFile(item as Tables<"files">)
                     } else {
-                      handleSelectCollection(item as Tables<"collections">)
+                      handleSelectCollection(item)
                     }
                   }}
                   onKeyDown={e =>
@@ -166,7 +136,7 @@ export const FilePicker: FC<FilePickerProps> = ({
                   }
                 >
                   {"type" in item ? (
-                    <FileIcon type={item.type} size={32} />
+                    <FileIcon type={(item as Tables<"files">).type} size={32} />
                   ) : (
                     <IconBooks size={32} />
                   )}

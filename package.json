@@ -62,7 +62,7 @@
     "@radix-ui/react-tooltip": "^1.0.7",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.38.4",
-    "@tabler/icons-react": "^2.40.0",
+    "@tabler/icons-react": "^2.47.0",
     "@vercel/analytics": "^1.1.1",
     "@vercel/edge-config": "^0.4.1",
     "@xenova/transformers": "^2.13.4",
@@ -143,5 +143,6 @@
     "postcss": {
       "nanoid": "3.3.7"
     }
-  }
+  },
+  "packageManager": "pnpm@9.15.2+sha512.93e57b0126f0df74ce6bff29680394c0ba54ec47246b9cf321f0121d8d9bb03f750a705f24edc3c1180853afd7c2c3b94196d0a3d53d3e069d9e2793ef11f321"
 }

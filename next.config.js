@@ -3,7 +3,7 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 })
 
 module.exports = async (phase, { defaultConfig }) => {
-  const withPWA = (await import("next-pwa")).default({
+  const withPWA = require("next-pwa")({
     dest: "public",
     register: true,
     skipWaiting: true,
@@ -19,10 +19,16 @@ module.exports = async (phase, { defaultConfig }) => {
         config.resolve.fallback = {
           ...config.resolve.fallback,
           path: require.resolve('path-browserify'),
+          fs: false,
+          'fs/promises': false
         };
       }
       return config;
     },
+    transpilePackages: [
+      '@jsdevtools/ono',
+      '@apidevtools/json-schema-ref-parser'
+    ],
     images: {
       remotePatterns: [
         {

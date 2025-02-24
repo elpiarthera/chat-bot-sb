@@ -7,10 +7,7 @@ import { WithTooltip } from "../ui/with-tooltip"
 interface ChatSecondaryButtonsProps {}
 
 export const ChatSecondaryButtons: FC<ChatSecondaryButtonsProps> = ({}) => {
-  const {
-    chat: { selectedChat }
-  } = useContext(ChatbotUIContext)
-
+  const { selectedChat } = useContext(ChatbotUIContext)
   const { handleNewChat } = useChatHandler()
 
   return (
