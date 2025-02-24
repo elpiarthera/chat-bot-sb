@@ -7,18 +7,7 @@ const withPWA = require("next-pwa")({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
-  buildExcludes: [/middleware-manifest\.json$/],
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        path: require.resolve('path-browserify'),
-        'fs/promises': false
-      }
-    }
-    return config
-  }
+  buildExcludes: [/middleware-manifest\.json$/]
 })
 
 module.exports = async (phase, { defaultConfig }) => {
