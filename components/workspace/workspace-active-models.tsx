@@ -119,13 +119,9 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
       try {
         console.log("Fetching active models for workspace:", workspaceId)
 
-        // Get active models from the database
+        // Get active models from the database - simple fetch
         const response = await fetch(
-          `/api/workspaces/${workspaceId}/active-models`,
-          {
-            method: "GET",
-            credentials: "include"
-          }
+          `/api/workspaces/${workspaceId}/active-models`
         )
 
         if (response.ok) {

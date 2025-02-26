@@ -5,9 +5,25 @@ import { cookies } from "next/headers"
 
 export async function getServerProfile() {
   console.log("🔍 getServerProfile: Starting to fetch user profile")
+  const isVercel = process.env.VERCEL === "1" || process.env.VERCEL === "true"
+
+  if (isVercel) {
+    console.log("🔍 getServerProfile: Running in Vercel environment")
+  }
 
   try {
     const cookieStore = cookies()
+
+    // Log available cookies for debugging (names only, not values)
+    try {
+      const cookieNames = cookieStore.getAll().map(cookie => cookie.name)
+      console.log(
+        `🔍 getServerProfile: Available cookies: ${cookieNames.join(", ")}`
+      )
+    } catch (cookieError) {
+      console.error("❌ getServerProfile: Error getting cookies:", cookieError)
+    }
+
     const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

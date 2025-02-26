@@ -142,17 +142,32 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
             headers: {
               "Content-Type": "application/json"
             },
-            credentials: "include",
             body: JSON.stringify({ activeModels })
           }
         )
 
+        console.log("Save active models response status:", response.status)
+
         if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || "Failed to save active models")
+          const errorText = await response.text()
+          let errorMessage = "Failed to save active models"
+
+          try {
+            const errorData = JSON.parse(errorText)
+            errorMessage = errorData.error || errorMessage
+          } catch (parseError) {
+            console.error("Error parsing error response:", parseError)
+            // Use the raw text if we can't parse JSON
+            errorMessage = `Failed to save active models: ${errorText}`
+          }
+
+          console.error("Error saving active models:", errorMessage)
+          toast.error(errorMessage)
+        } else {
+          console.log("Active models saved successfully")
         }
       } catch (error) {
-        console.error("Error saving active models:", error)
+        console.error("Exception saving active models:", error)
         toast.error("Failed to save active models. Please try again.")
       }
     }
