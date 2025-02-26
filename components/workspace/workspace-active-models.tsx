@@ -121,12 +121,32 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
 
         // Get active models from the database - simple fetch
         const response = await fetch(
-          `/api/workspaces/${workspaceId}/active-models`
+          `/api/workspaces/${workspaceId}/active-models`,
+          {
+            credentials: "include",
+            headers: {
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              Pragma: "no-cache"
+            }
+          }
         )
 
+        console.log("Active models fetch response status:", response.status)
+
         if (response.ok) {
-          const data = await response.json()
-          console.log("Fetched active models:", data)
+          let data
+          try {
+            data = await response.json()
+            console.log("Fetched active models:", data)
+          } catch (jsonError) {
+            console.error("Error parsing active models JSON:", jsonError)
+            // Initialize with all models in case of error
+            const allModelIds = uniqueModelsInEffect
+              .map(model => model.modelId)
+              .filter(Boolean)
+            setActiveModelIds(allModelIds)
+            return
+          }
 
           if (data && data.length > 0) {
             // Extract model IDs from the response
@@ -140,6 +160,17 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
               setActiveModelIds(savedModelIds)
               return // Exit early as we've set the models
             }
+          }
+        } else {
+          console.error(
+            "Error fetching active models. Status:",
+            response.status
+          )
+          try {
+            const errorText = await response.text()
+            console.error("Error details:", errorText)
+          } catch (e) {
+            console.error("Could not read error details")
           }
         }
 
