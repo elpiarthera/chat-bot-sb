@@ -1,11 +1,16 @@
 import { createClient } from "@/lib/supabase/server"
 import { cookies } from "next/headers"
 import { NextRequest, NextResponse } from "next/server"
+import { customSupabase } from "@/lib/supabase/custom-client"
 
 export async function POST(request: NextRequest) {
   try {
     const json = await request.json()
     const { workspaceId, email, role } = json
+
+    if (!workspaceId || !email) {
+      return new NextResponse("Missing workspaceId or email", { status: 400 })
+    }
 
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
@@ -16,7 +21,9 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getSession()
 
     if (!session) {
-      return new NextResponse("Unauthorized", { status: 401 })
+      return new NextResponse("You must be logged in to share workspaces", {
+        status: 401
+      })
     }
 
     // Check if user owns the workspace
@@ -28,7 +35,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!workspace) {
-      return new NextResponse("You don't own this workspace", { status: 403 })
+      return new NextResponse(
+        "You don't have permission to share this workspace",
+        { status: 403 }
+      )
     }
 
     // Use admin API to find the user by email
@@ -37,71 +47,84 @@ export async function POST(request: NextRequest) {
     })
 
     // Verify the admin client has the service role key
-    console.log(
-      "Using service role key:",
-      !!process.env.SUPABASE_SERVICE_ROLE_KEY
-    )
-
-    const { data: users, error: usersError } =
-      await adminClient.auth.admin.listUsers()
-
-    if (usersError) {
-      console.error("Error fetching users:", usersError)
-      return new NextResponse("Could not fetch users", { status: 500 })
-    }
-
-    const userToShare = users?.users?.find(user => user.email === email)
-
-    if (!userToShare) {
-      console.error("User not found with email:", email)
-      return new NextResponse("User not found", { status: 404 })
-    }
-
-    console.log(
-      "Found user in auth database:",
-      userToShare.id,
-      userToShare.email
-    )
-
-    // Instead of looking for a profile, use the auth user ID directly
-    const userId = userToShare.id
-
-    // Check if already shared
-    const { data: existingShare } = await supabase
-      .from("workspace_users")
-      .select("*")
-      .eq("workspace_id", workspaceId)
-      .eq("user_id", userId)
-      .single()
-
-    if (existingShare) {
-      return new NextResponse("Workspace already shared with this user", {
-        status: 400
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return new NextResponse("Server is not configured with admin access", {
+        status: 500
       })
     }
 
-    // Share the workspace directly with auth user ID
-    const { data: sharedWorkspace, error } = await supabase
-      .from("workspace_users")
-      .insert([
-        {
+    try {
+      // Try to find the user with this email
+      const { data: users, error: usersError } =
+        await adminClient.auth.admin.listUsers()
+
+      if (usersError) {
+        console.error("Error accessing admin API:", usersError)
+        return new NextResponse("Unable to access user management API", {
+          status: 500
+        })
+      }
+
+      const userToShare = users?.users?.find(user => user.email === email)
+
+      if (!userToShare) {
+        return new NextResponse(`No user found with email: ${email}`, {
+          status: 404
+        })
+      }
+
+      console.log(
+        "Found user in auth database:",
+        userToShare.id,
+        userToShare.email
+      )
+
+      // Use the auth user ID directly
+      const userId = userToShare.id
+
+      // Check if already shared
+      const { data: existingShare } = await customSupabase
+        .from("workspace_users")
+        .select("*")
+        .eq("workspace_id", workspaceId)
+        .eq("user_id", userId)
+        .single()
+
+      if (existingShare) {
+        return new NextResponse("Workspace is already shared with this user", {
+          status: 400
+        })
+      }
+
+      // Share the workspace
+      const { data: workspaceUser, error: shareError } = await customSupabase
+        .from("workspace_users")
+        .insert({
           workspace_id: workspaceId,
           user_id: userId,
-          role: role || "viewer"
-        }
-      ])
-      .select("*")
-      .single()
+          role: role || "viewer" // Default to viewer if no role specified
+        })
+        .select("*")
+        .single()
 
-    if (error) {
-      console.error("Error inserting workspace user:", error)
-      return new NextResponse(error.message, { status: 500 })
+      if (shareError) {
+        console.error("Database error while sharing workspace:", shareError)
+        return new NextResponse("Error saving workspace share", { status: 500 })
+      }
+
+      return NextResponse.json({
+        ...workspaceUser,
+        email: userToShare.email // Include email in response for UI
+      })
+    } catch (adminError) {
+      console.error("Error with admin operations:", adminError)
+      return new NextResponse("Error performing user lookup", { status: 500 })
     }
-
-    return NextResponse.json(sharedWorkspace)
   } catch (error: any) {
     console.error("Workspace sharing error:", error)
-    return new NextResponse(error.message, { status: 500 })
+    return new NextResponse(error.message || "An unexpected error occurred", {
+      status: 500
+    })
   }
 }
 
@@ -139,15 +162,29 @@ export async function DELETE(request: NextRequest) {
       return new NextResponse("You don't own this workspace", { status: 403 })
     }
 
-    // Remove user from workspace
-    const { error } = await supabase
+    // Check if the user is shared to the workspace
+    const { data: existingShare } = await customSupabase
+      .from("workspace_users")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("user_id", userId)
+      .single()
+
+    if (!existingShare) {
+      return new NextResponse("Workspace not shared with this user", {
+        status: 400
+      })
+    }
+
+    // Delete the share
+    const { error: deleteError } = await customSupabase
       .from("workspace_users")
       .delete()
       .eq("workspace_id", workspaceId)
       .eq("user_id", userId)
 
-    if (error) {
-      return new NextResponse(error.message, { status: 500 })
+    if (deleteError) {
+      return new NextResponse(deleteError.message, { status: 500 })
     }
 
     return new NextResponse(null, { status: 204 })

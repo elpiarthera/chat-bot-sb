@@ -1,5 +1,5 @@
-import { supabase } from "@/lib/supabase/browser-client"
-import { TablesInsert, TablesUpdate } from "@/supabase/types"
+import { customSupabase as supabase } from "@/lib/supabase/custom-client"
+import { WorkspaceUser } from "./custom-types"
 
 // Get all users who have access to a workspace
 export const getWorkspaceUsers = async (workspaceId: string) => {
@@ -36,9 +36,9 @@ export const shareWorkspaceWithUser = async (workspaceShare: {
   user_id: string
   role: string
 }) => {
-  const { data: sharedWorkspace, error } = await supabase
+  const { data: workspaceUser, error } = await supabase
     .from("workspace_users")
-    .insert([workspaceShare])
+    .insert(workspaceShare)
     .select("*")
     .single()
 
@@ -46,7 +46,7 @@ export const shareWorkspaceWithUser = async (workspaceShare: {
     throw new Error(error.message)
   }
 
-  return sharedWorkspace
+  return workspaceUser
 }
 
 // Update a user's role in a workspace

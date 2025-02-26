@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/browser-client"
-import { TablesInsert, TablesUpdate } from "@/supabase/types"
+import { customSupabase } from "@/lib/supabase/custom-client"
+import { TablesInsert, TablesUpdate, Tables } from "@/supabase/types"
 import { Workspace } from "@/types/workspace"
 
 export const getHomeWorkspaceByUserId = async (userId: string) => {
@@ -72,34 +73,34 @@ export const getWorkspacesByUserId = async (
       // Fallback: Try direct query
       console.log("Falling back to direct database query...")
       try {
-        // This will likely fail if workspace_users is not in the schema types,
-        // but we can try as a fallback
-        const { data: directWorkspaces, error: directError } = await (supabase
-          .from("workspace_users" as any)
-          .select("workspace_id")
-          .eq("user_id", userId) as any)
+        // Use customSupabase instead of supabase for workspace_users
+        const { data: directWorkspaces, error: directError } =
+          await customSupabase
+            .from("workspace_users")
+            .select("workspace_id")
+            .eq("user_id", userId)
 
         if (directError) {
           console.error("Error in direct query fallback:", directError)
         } else if (directWorkspaces && directWorkspaces.length > 0) {
           const workspaceIds = directWorkspaces.map(
-            (item: any) => item.workspace_id
+            (w: { workspace_id: string }) => w.workspace_id
           )
 
+          // Use regular supabase for workspaces table which is properly typed
           const { data: workspaces, error: workspacesError } = await supabase
             .from("workspaces")
             .select("*")
             .in("id", workspaceIds)
 
-          if (!workspacesError && workspaces) {
-            sharedWorkspaces = workspaces.map(workspace => ({
-              ...workspace,
-              is_shared: true
-            }))
+          if (workspacesError) {
+            console.error("Error fetching workspaces by IDs:", workspacesError)
+          } else {
+            return workspaces || []
           }
         }
-      } catch (innerError) {
-        console.error("Error in direct query fallback:", innerError)
+      } catch (error) {
+        console.error("Error in workspace_users fallback:", error)
       }
     }
   } catch (error) {

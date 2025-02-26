@@ -24,7 +24,7 @@ import {
   removeUserFromWorkspace,
   updateWorkspaceUserRole
 } from "@/db/workspace_users"
-import { supabase } from "@/lib/supabase/browser-client"
+import { customSupabase } from "@/lib/supabase/custom-client"
 import { toast } from "sonner"
 import { IconTrash, IconEdit } from "@tabler/icons-react"
 
@@ -53,77 +53,63 @@ export const ShareWorkspaceModal: FC<ShareWorkspaceModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Validate Supabase client
-      console.log("Checking Supabase client connection by loading users...")
+      // Validate Supabase client connection by loading users...
       loadSharedUsers()
     }
   }, [isOpen, workspace.id])
 
   const loadSharedUsers = async () => {
     try {
+      // Get workspace users (user IDs)
       const users = await getWorkspaceUsers(workspace.id)
       console.log("Workspace users:", users)
 
-      // For each user ID, get their auth information directly
-      const userProfiles = await Promise.all(
-        users.map(async user => {
-          // Try to get email from auth
-          let userEmail = "Unknown"
-          let displayName = "Unknown User"
-          let username = "unknown"
+      if (!users || users.length === 0) {
+        setSharedUsers([])
+        return
+      }
 
-          try {
-            // This might fail due to permissions, which is expected
-            const { data: userData, error: userError } =
-              await supabase.auth.admin.getUserById(user.user_id)
-            if (userError) {
-              console.error(
-                "Error fetching auth user (expected if using server route):",
-                userError
-              )
-            }
-
-            if (userData?.user?.email) {
-              userEmail = userData.user.email
-              // Use the email's local part as display name if no profile
-              displayName = userEmail.split("@")[0]
-              username = displayName
-            }
-          } catch (emailError) {
-            console.error("Error fetching user email:", emailError)
+      // Use the server API to get user details instead of client-side calls
+      try {
+        // Make server-side API call to get user details
+        const response = await fetch(
+          `/api/workspace/users?workspaceId=${workspace.id}`,
+          {
+            method: "GET"
           }
+        )
 
-          // Try to get profile info as a fallback
-          try {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("username, display_name")
-              .eq("user_id", user.user_id)
-              .single()
+        if (response.ok) {
+          const userProfiles = await response.json()
+          console.log("User information from API:", userProfiles)
+          setSharedUsers(userProfiles)
+          return
+        } else {
+          console.warn(
+            "Could not fetch user details from API, using fallback approach"
+          )
+        }
+      } catch (apiError) {
+        console.error("Error fetching user details from API:", apiError)
+      }
 
-            if (profile) {
-              username = profile.username || username
-              displayName = profile.display_name || displayName
-            }
-          } catch (profileError) {
-            // This is expected if profiles don't exist
-            console.log("No profile found for user (expected):", user.user_id)
-          }
+      // Fallback: Create basic user information from IDs if API fails
+      const userProfiles = users.map(user => {
+        // Create a basic profile with just the ID and role
+        return {
+          ...user,
+          email: `user-${user.user_id.substring(0, 6)}@example.com`, // Placeholder
+          display_name: `User ${user.user_id.substring(0, 6)}`,
+          username: `user-${user.user_id.substring(0, 6)}`
+        }
+      })
 
-          return {
-            ...user,
-            email: userEmail,
-            display_name: displayName,
-            username: username
-          }
-        })
-      )
-
-      console.log("User information:", userProfiles)
+      console.log("Basic user information (fallback):", userProfiles)
       setSharedUsers(userProfiles)
     } catch (error) {
       console.error("Error loading shared users:", error)
       toast.error("Failed to load shared users")
+      setSharedUsers([]) // Set empty array on error
     }
   }
 
@@ -132,103 +118,33 @@ export const ShareWorkspaceModal: FC<ShareWorkspaceModalProps> = ({
 
     setIsLoading(true)
     try {
-      console.log("Attempting to find user with email:", email)
+      console.log("Attempting to share workspace with email:", email)
 
-      // Try to find the user via admin API first (requires service role key)
-      try {
-        const { data: authUsers, error: authError } =
-          await supabase.auth.admin.listUsers()
-
-        if (authError) {
-          console.error("Error fetching auth users:", authError)
-          throw new Error(`Admin API not available: ${authError.message}`)
-        }
-
-        // Find the user with the matching email
-        const authUser = authUsers?.users?.find(user => user.email === email)
-
-        if (!authUser) {
-          toast.error("User not found with that email address")
-          setIsLoading(false)
-          return
-        }
-
-        console.log("Found auth user with ID:", authUser.id)
-
-        // Now get or verify the profile record exists
-        const { data: userProfile, error: profileError } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("user_id", authUser.id)
-          .single()
-
-        if (profileError || !userProfile) {
-          console.error("Error finding user profile:", profileError)
-          toast.error("User profile not found")
-          setIsLoading(false)
-          return
-        }
-
-        console.log("Found user profile with ID:", userProfile.id)
-
-        // Check if already shared
-        const existingShares = sharedUsers.filter(
-          user => user.user_id === userProfile.id
-        )
-
-        if (existingShares.length > 0) {
-          toast.error("Workspace already shared with this user")
-          setIsLoading(false)
-          return
-        }
-
-        console.log("Sharing workspace with user ID:", userProfile.id)
-
-        // Share the workspace with correct typing
-        const workspaceShareData = {
-          workspace_id: workspace.id,
-          user_id: userProfile.id,
+      // Always use the server API for sharing - don't try client-side admin API
+      const response = await fetch("/api/workspace/share", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          workspaceId: workspace.id,
+          email,
           role
-        }
-
-        await shareWorkspaceWithUser(workspaceShareData)
-
-        toast.success("Workspace shared successfully")
-        setEmail("")
-        loadSharedUsers()
-      } catch (adminApiError) {
-        // Fallback: use server API to share instead
-        console.error(
-          "Admin API error, using server API instead:",
-          adminApiError
-        )
-
-        // Make a server request to handle the sharing
-        const response = await fetch("/api/workspace/share", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            workspaceId: workspace.id,
-            email,
-            role
-          })
         })
+      })
 
-        // Log the response status for debugging
-        console.log("Server API response status:", response.status)
+      // Log the response status for debugging
+      console.log("Server API response status:", response.status)
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error("Server API error details:", errorText)
-          throw new Error(`Server API failed: ${errorText}`)
-        }
-
-        toast.success("Workspace shared successfully")
-        setEmail("")
-        loadSharedUsers()
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Server API error details:", errorText)
+        throw new Error(errorText || "Failed to share workspace")
       }
+
+      toast.success("Workspace shared successfully")
+      setEmail("")
+      loadSharedUsers()
     } catch (error) {
       console.error("Error sharing workspace:", error)
       toast.error(

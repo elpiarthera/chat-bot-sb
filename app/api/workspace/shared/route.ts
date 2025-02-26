@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase/browser-client"
+import { customSupabase } from "@/lib/supabase/custom-client"
 
 export const dynamic = "force-dynamic"
 
@@ -39,7 +41,7 @@ export async function GET(request: Request) {
       console.error("Error fetching shared workspaces:", error)
 
       // Fallback to direct query if RPC not available
-      const { data: sharedWorkspaces, error: queryError } = await supabase
+      const { data: sharedWorkspaces, error: queryError } = await customSupabase
         .from("workspace_users")
         .select("workspace_id")
         .eq("user_id", userId)
