@@ -31,15 +31,35 @@ export const getWorkspaceById = async (workspaceId: string) => {
 }
 
 export const getWorkspacesByUserId = async (userId: string) => {
-  const { data: workspaces, error } = await supabase
+  // First, get all workspaces owned by the user
+  const { data: ownedWorkspaces, error: ownedError } = await supabase
     .from("workspaces")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
 
-  if (!workspaces) {
-    throw new Error(error.message)
+  if (ownedError) {
+    throw new Error(ownedError.message)
   }
+
+  // Then, get all workspaces shared with the user
+  const { data: sharedWorkspaces, error: sharedError } = await supabase
+    .from("workspace_users")
+    .select("workspaces(*)")
+    .eq("user_id", userId)
+
+  if (sharedError) {
+    throw new Error(sharedError.message)
+  }
+
+  // Combine owned and shared workspaces
+  const workspaces = [
+    ...ownedWorkspaces,
+    ...sharedWorkspaces.map(item => ({
+      ...item.workspaces,
+      is_shared: true
+    }))
+  ]
 
   return workspaces
 }

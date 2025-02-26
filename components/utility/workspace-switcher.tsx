@@ -9,7 +9,12 @@ import {
 import { ChatbotUIContext } from "@/context/context"
 import { createWorkspace } from "@/db/workspaces"
 import useHotkey from "@/lib/hooks/use-hotkey"
-import { IconBuilding, IconHome, IconPlus } from "@tabler/icons-react"
+import {
+  IconBuilding,
+  IconHome,
+  IconPlus,
+  IconShare
+} from "@tabler/icons-react"
 import { ChevronsUpDown } from "lucide-react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -125,6 +130,12 @@ export const WorkspaceSwitcher: FC<WorkspaceSwitcherProps> = ({}) => {
           )}
 
           {getWorkspaceName(value) || "Select workspace..."}
+
+          {selectedWorkspace?.is_shared && (
+            <div className="ml-2 flex items-center">
+              <IconShare size={14} className="text-muted-foreground" />
+            </div>
+          )}
         </div>
 
         <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
@@ -187,6 +198,7 @@ export const WorkspaceSwitcher: FC<WorkspaceSwitcherProps> = ({}) => {
               .filter(
                 workspace =>
                   !workspace.is_home &&
+                  !workspace.is_shared &&
                   workspace.name.toLowerCase().includes(search.toLowerCase())
               )
               .sort((a, b) => a.name.localeCompare(b.name))
@@ -221,6 +233,63 @@ export const WorkspaceSwitcher: FC<WorkspaceSwitcherProps> = ({}) => {
                   </Button>
                 )
               })}
+
+            {/* Shared Workspaces Section */}
+            {workspaces.some(workspace => workspace.is_shared) && (
+              <div className="mt-2 border-t pt-2">
+                <div className="text-muted-foreground mb-1 px-2 text-sm">
+                  Shared with me
+                </div>
+
+                {workspaces
+                  .filter(
+                    workspace =>
+                      workspace.is_shared &&
+                      workspace.name
+                        .toLowerCase()
+                        .includes(search.toLowerCase())
+                  )
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map(workspace => {
+                    const image = workspaceImages.find(
+                      image => image.workspaceId === workspace.id
+                    )
+
+                    return (
+                      <Button
+                        key={workspace.id}
+                        className="flex items-center justify-start"
+                        variant="ghost"
+                        onClick={() => handleSelect(workspace.id)}
+                      >
+                        <div className="flex items-center">
+                          {image ? (
+                            <Image
+                              style={{ width: "28px", height: "28px" }}
+                              className="mr-3 rounded"
+                              src={image.url || ""}
+                              width={28}
+                              height={28}
+                              alt={workspace.name}
+                            />
+                          ) : (
+                            <IconBuilding className="mr-3" size={28} />
+                          )}
+
+                          <div className="text-lg font-semibold">
+                            {workspace.name}
+                          </div>
+
+                          <IconShare
+                            size={14}
+                            className="text-muted-foreground ml-2"
+                          />
+                        </div>
+                      </Button>
+                    )
+                  })}
+              </div>
+            )}
           </div>
         </div>
       </PopoverContent>

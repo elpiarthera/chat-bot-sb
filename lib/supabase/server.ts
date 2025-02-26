@@ -1,10 +1,22 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
-export const createClient = (cookieStore: ReturnType<typeof cookies>) => {
+interface CreateClientOptions {
+  admin?: boolean
+}
+
+export const createClient = (
+  cookieStore: ReturnType<typeof cookies>,
+  options?: CreateClientOptions
+) => {
+  // Use service role key for admin operations if requested
+  const supabaseKey = options?.admin
+    ? process.env.SUPABASE_SERVICE_ROLE_KEY!
+    : process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseKey,
     {
       cookies: {
         get(name: string) {

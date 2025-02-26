@@ -7,7 +7,7 @@ import {
 import { updateWorkspace } from "@/db/workspaces"
 import { convertBlobToBase64 } from "@/lib/blob-to-b64"
 import { LLMID } from "@/types"
-import { IconHome, IconSettings } from "@tabler/icons-react"
+import { IconHome, IconSettings, IconShare } from "@tabler/icons-react"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "../ui/button"
@@ -29,6 +29,7 @@ import { WithTooltip } from "../ui/with-tooltip"
 import { DeleteWorkspace } from "./delete-workspace"
 import { updateWorkspaceActiveModels } from "@/db/workspace-active-models"
 import { WorkspaceActiveModels } from "./workspace-active-models"
+import { ShareWorkspaceModal } from "./share-workspace-modal"
 
 interface WorkspaceSettingsProps {}
 
@@ -72,6 +73,9 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
   const [activeModels, setActiveModels] = useState<
     { modelId: string; provider: string }[]
   >([])
+
+  // Add state for share modal
+  const [isShareOpen, setIsShareOpen] = useState(false)
 
   useEffect(() => {
     const workspaceImage =
@@ -222,23 +226,53 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <WithTooltip
-          display={<div>Workspace Settings</div>}
-          trigger={
-            <IconSettings
-              className="ml-3 cursor-pointer pr-[5px] hover:opacity-50"
-              size={32}
-              onClick={() => setIsOpen(true)}
-            />
-          }
-        />
+        <Button variant="ghost" size="icon">
+          <IconSettings size={20} />
+        </Button>
       </SheetTrigger>
 
-      <SheetContent
-        className="flex flex-col justify-between"
-        side="left"
-        onKeyDown={handleKeyDown}
-      >
+      <SheetContent className="flex w-full flex-col sm:max-w-md">
+        <SheetHeader className="flex flex-row items-center justify-between">
+          <SheetTitle className="flex">Workspace Settings</SheetTitle>
+
+          {selectedWorkspace?.is_home ? (
+            <WithTooltip
+              display={<div>This is your home workspace</div>}
+              trigger={
+                <div className="flex cursor-default items-center px-1">
+                  <IconHome size={20} className="text-blue-500" />
+                </div>
+              }
+            />
+          ) : (
+            <DeleteWorkspace
+              workspace={selectedWorkspace}
+              onDelete={() => setIsOpen(false)}
+            />
+          )}
+        </SheetHeader>
+
+        <div className="mt-4 flex items-center justify-end gap-2">
+          {selectedWorkspace && (
+            <Button
+              onClick={() => setIsShareOpen(true)}
+              variant="outline"
+              className="flex items-center gap-1"
+            >
+              <IconShare size={16} />
+              Share
+            </Button>
+          )}
+        </div>
+
+        {selectedWorkspace && (
+          <ShareWorkspaceModal
+            workspace={selectedWorkspace}
+            isOpen={isShareOpen}
+            onOpenChange={setIsShareOpen}
+          />
+        )}
+
         <div className="grow overflow-auto">
           <SheetHeader>
             <SheetTitle className="flex items-center justify-between">
