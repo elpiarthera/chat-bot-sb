@@ -2,7 +2,7 @@
 
 import { ChatbotUIContext } from "@/context/context"
 import { LLM, ModelProvider } from "@/types"
-import { FC, useContext, useState, useEffect } from "react"
+import { FC, useContext, useState, useEffect, useRef } from "react"
 import {
   Accordion,
   AccordionContent,
@@ -35,6 +35,9 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
     availableLocalModels,
     availableOpenRouterModels
   } = useContext(ChatbotUIContext)
+
+  // Create a ref to store previous values
+  const prevActiveModelIdsRef = useRef<string[]>([])
 
   // Initialize with empty array first to prevent errors
   const [activeModelIds, setActiveModelIds] = useState<string[]>([])
@@ -139,16 +142,6 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
               // Use the saved models from database
               console.log("Using saved model selection:", savedModelIds)
               setActiveModelIds(savedModelIds)
-
-              // Also notify parent about active models with provider info
-              const activeModelsWithProvider = savedModelIds.map(
-                (modelId: string) => ({
-                  modelId,
-                  provider: findProviderForModel(modelId)
-                })
-              )
-
-              onActiveModelsChange(activeModelsWithProvider)
               return // Exit early as we've set the models
             }
           }
@@ -160,14 +153,6 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
           .map(model => model.modelId)
           .filter(Boolean)
         setActiveModelIds(allModelIds)
-
-        // Also notify parent
-        const allModelsWithProvider = allModelIds.map(modelId => ({
-          modelId,
-          provider: findProviderForModel(modelId)
-        }))
-
-        onActiveModelsChange(allModelsWithProvider)
       } catch (err) {
         console.error("Error fetching active models:", err)
         // Initialize with all models in case of error
@@ -175,14 +160,6 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
           .map(model => model.modelId)
           .filter(Boolean)
         setActiveModelIds(allModelIds)
-
-        // Also notify parent
-        const allModelsWithProvider = allModelIds.map(modelId => ({
-          modelId,
-          provider: findProviderForModel(modelId)
-        }))
-
-        onActiveModelsChange(allModelsWithProvider)
       }
     }
 
@@ -193,9 +170,39 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
     availableLocalModels,
     availableOpenRouterModels,
     models,
-    workspaceId,
-    onActiveModelsChange
+    workspaceId
   ])
+
+  // Fix the useEffect that notifies parent component to prevent infinite loops
+  useEffect(() => {
+    // Skip if no models or no change from previous state
+    if (activeModelIds.length === 0) return
+
+    // Check if the active model IDs have actually changed
+    const prevIds = prevActiveModelIdsRef.current
+    const hasChanged =
+      prevIds.length !== activeModelIds.length ||
+      activeModelIds.some(id => !prevIds.includes(id))
+
+    if (!hasChanged) return
+
+    // Update the ref with current values
+    prevActiveModelIdsRef.current = [...activeModelIds]
+
+    // Helper function to find provider for a model
+    const findProviderForModel = (modelId: string) => {
+      const model = allUniqueModels.find(m => m.modelId === modelId)
+      return model?.provider || "unknown"
+    }
+
+    const activeModelsWithProvider = activeModelIds.map(modelId => ({
+      modelId,
+      provider: findProviderForModel(modelId)
+    }))
+
+    // Notify parent about the change
+    onActiveModelsChange(activeModelsWithProvider)
+  }, [activeModelIds])
 
   const handleToggleModel = (modelId: string) => {
     setActiveModelIds(prev => {
@@ -203,16 +210,6 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
         ? prev.filter(id => id !== modelId)
         : [...prev, modelId]
 
-      // Update parent component
-      const activeModelsWithProvider = newActiveIds.map(id => {
-        const model = allUniqueModels.find(m => m.modelId === id)
-        return {
-          modelId: id,
-          provider: model?.provider || "unknown"
-        }
-      })
-
-      onActiveModelsChange(activeModelsWithProvider)
       return newActiveIds
     })
   }
@@ -232,16 +229,6 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
         newActiveIds = prev.filter(id => !providerModelIds.includes(id as any))
       }
 
-      // Update parent component
-      const activeModelsWithProvider = newActiveIds.map(id => {
-        const model = allUniqueModels.find(m => m.modelId === id)
-        return {
-          modelId: id,
-          provider: model?.provider || "unknown"
-        }
-      })
-
-      onActiveModelsChange(activeModelsWithProvider)
       return newActiveIds
     })
   }
@@ -274,8 +261,8 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
         <Accordion type="multiple" className="w-full">
           {Object.entries(groupedModels).map(([provider, models]) => (
             <AccordionItem key={provider} value={provider}>
-              <AccordionTrigger className="py-2">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center">
+                <div className="flex items-center space-x-2 py-2">
                   <Checkbox
                     id={`provider-${provider}`}
                     checked={isProviderActive(provider)}
@@ -287,16 +274,13 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
                     onCheckedChange={checked =>
                       handleToggleProvider(provider, checked === true)
                     }
-                    onClick={e => e.stopPropagation()}
                   />
-                  <Label
-                    htmlFor={`provider-${provider}`}
-                    onClick={e => e.stopPropagation()}
-                  >
+                  <Label htmlFor={`provider-${provider}`}>
                     {provider.charAt(0).toUpperCase() + provider.slice(1)}
                   </Label>
                 </div>
-              </AccordionTrigger>
+                <AccordionTrigger className="flex-1 py-2" />
+              </div>
               <AccordionContent>
                 <div className="space-y-2 pl-6">
                   {models.map(model => (

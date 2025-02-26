@@ -151,8 +151,17 @@ export const fetchOpenAIModels = async () => {
       throw new Error(`OpenAI models API is not responding.`)
     }
 
-    const { models } = await response.json()
+    const data = await response.json()
+    const { models, source } = data
 
+    if (source === "fallback") {
+      console.log("Using fallback OpenAI models from hardcoded list")
+      return OPENAI_LLM_LIST
+    }
+
+    console.log(
+      `Successfully fetched ${models?.length || 0} OpenAI models from API`
+    )
     const openaiModels: LLM[] = models.map((model: any) => {
       const staticModel = OPENAI_LLM_LIST.find(m => m.modelId === model.id)
 
@@ -170,6 +179,7 @@ export const fetchOpenAIModels = async () => {
     return openaiModels
   } catch (error) {
     console.warn("Error fetching OpenAI models: " + error)
+    console.log("Falling back to hardcoded OpenAI models list")
     return OPENAI_LLM_LIST
   }
 }
