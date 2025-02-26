@@ -1,4 +1,5 @@
 import { Tables } from "@/supabase/types"
+import { WorkspaceUser as CustomWorkspaceUser } from "@/db/custom-types"
 
 // Enhanced type that extends the base Supabase workspace type
 export type Workspace = Tables<"workspaces"> & {
@@ -6,6 +7,6 @@ export type Workspace = Tables<"workspaces"> & {
 }
 
 // Type for the workspace user relationship
-export type WorkspaceUser = Tables<"workspace_users"> & {
+export type WorkspaceUser = CustomWorkspaceUser & {
   workspaces?: Workspace
 }
