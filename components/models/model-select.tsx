@@ -64,7 +64,13 @@ export const ModelSelect: FC<ModelSelectProps> = ({
     ...availableOpenRouterModels
   ]
 
-  const groupedModels = allModels.reduce<Record<string, LLM[]>>(
+  // Filter out duplicate models by modelId
+  const uniqueModels = allModels.filter(
+    (model, index, self) =>
+      index === self.findIndex(m => m.modelId === model.modelId)
+  )
+
+  const groupedModels = uniqueModels.reduce<Record<string, LLM[]>>(
     (groups, model) => {
       const key = model.provider
       if (!groups[key]) {
@@ -76,7 +82,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
     {}
   )
 
-  const selectedModel = allModels.find(
+  const selectedModel = uniqueModels.find(
     model => model.modelId === selectedModelId
   )
 
@@ -185,7 +191,6 @@ export const ModelSelect: FC<ModelSelectProps> = ({
                         )}
 
                         <ModelOption
-                          key={model.modelId}
                           model={model}
                           onSelect={() => handleSelectModel(model.modelId)}
                         />

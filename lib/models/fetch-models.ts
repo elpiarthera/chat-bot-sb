@@ -7,6 +7,7 @@ import { OPENAI_LLM_LIST, OPENAI_PLATORM_LINK } from "./llm/openai-llm-list"
 export const fetchHostedModels = async (profile: Tables<"profiles">) => {
   try {
     const providers = ["google", "anthropic", "mistral", "groq", "perplexity"]
+    let openaiHandled = false
 
     if (profile.use_azure_openai) {
       providers.push("azure")
@@ -32,9 +33,11 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
         const openaiModels = await fetchOpenAIModels()
         if (openaiModels) {
           modelsToAdd.push(...openaiModels)
+          openaiHandled = true // Mark OpenAI as already handled
         }
       } catch (e) {
         modelsToAdd.push(...LLM_LIST_MAP["openai"])
+        openaiHandled = true // Mark OpenAI as already handled
       }
     } else if (profile.use_azure_openai) {
       if (profile?.azure_openai_api_key || data.isUsingEnvKeyMap["azure"]) {
@@ -43,6 +46,11 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
     }
 
     for (const provider of providers) {
+      // Skip OpenAI if we've already handled it
+      if (provider === "openai" && openaiHandled) {
+        continue
+      }
+
       let providerKey: keyof typeof profile
 
       if (provider === "google") {

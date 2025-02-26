@@ -1,6 +1,6 @@
 import { LLM } from "@/types"
 
-const OPENAI_PLATORM_LINK = "https://platform.openai.com/docs/overview"
+export const OPENAI_PLATORM_LINK = "https://platform.openai.com/docs/overview"
 
 // OpenAI Models (UPDATED 1/25/24) -----------------------------
 const GPT4o: LLM = {

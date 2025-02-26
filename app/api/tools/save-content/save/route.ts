@@ -1,7 +1,19 @@
 import { getServerProfile } from "@/lib/server/server-chat-helpers"
-import { Tables } from "@/supabase/types"
-import { createServerClient } from "@/utils/supabase/server"
 import { cookies } from "next/headers"
+import { createClient } from "@/lib/supabase/server"
+
+// Define interface for document data
+interface DocumentData {
+  user_id: string
+  title: string
+  content: string
+  format: string
+  source_url: string | null
+  folder_path: string
+  slug: string
+  created_at: string
+  updated_at: string
+}
 
 export async function POST(request: Request) {
   try {
@@ -27,7 +39,7 @@ export async function POST(request: Request) {
 
     // Initialize Supabase client
     const cookieStore = cookies()
-    const supabase = createServerClient(cookieStore)
+    const supabase = createClient(cookieStore)
 
     // Get current user
     const {
@@ -53,7 +65,7 @@ export async function POST(request: Request) {
     const timestamp = new Date().toISOString()
 
     // Prepare document data
-    const documentData: Partial<Tables<"documents">> = {
+    const documentData: Partial<DocumentData> = {
       user_id: user.id,
       title,
       content,
