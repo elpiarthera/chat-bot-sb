@@ -710,3 +710,80 @@ If you add any more tables or make database schema changes in the future, rememb
    - Through the Supabase dashboard SQL Editor (as you've done)
    - Using the Supabase CLI if it's properly configured
    - By other means such as the Supabase Management API
+
+## Vercel Authentication and Model Fetching Issues
+
+### Authentication and Cookie Handling Issues
+
+1. **Supabase Authentication in Serverless Environments**:
+   - When deploying to Vercel, cookie handling requires special attention
+   - API routes need specific cookie management configuration
+   - The "Auth session missing!" errors occurred because cookies weren't properly configured in the Vercel environment
+
+2. **Cookie Management Solution**:
+   - Always use the recommended `getAll` and `setAll` methods for cookie management:
+   ```typescript
+   const supabase = createServerClient(
+     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+     {
+       cookies: {
+         get: (name) => cookies().get(name)?.value,
+         set: (name, value, options) => cookies().set(name, value, options),
+         remove: (name, options) => cookies().set(name, "", options)
+       }
+     }
+   )
+   ```
+
+3. **Error Handling for Authentication**:
+   - Always add explicit error handling for auth failures
+   - Log detailed information about auth errors to help with debugging
+   - Use defensive coding to handle missing auth sessions:
+   ```typescript
+   try {
+     const { data: { user } } = await supabase.auth.getUser()
+     if (!user) throw new Error("Auth session missing!")
+     // Proceed with authenticated operations
+   } catch (error) {
+     console.error("Authentication error:", error)
+     return Response.json({ error: "Authentication failed" }, { status: 401 })
+   }
+   ```
+
+### API Request Optimization
+
+1. **Cookie and Request Headers**:
+   - Be careful with API request headers in Vercel environments
+   - Always include proper cache control headers when needed
+   - Set explicit credentials handling for fetch requests:
+   ```typescript
+   const response = await fetch('/api/endpoint', {
+     method: 'GET',
+     credentials: 'include',
+     headers: {
+       'Cache-Control': 'no-cache',
+       'Pragma': 'no-cache'
+     }
+   })
+   ```
+
+2. **Resource Management**:
+   - Group related API calls with Promise.all to prevent overwhelming the server
+   - Implement proper error handling and recovery
+   - Add retry logic for critical operations
+   - Separate resource-intensive operations (like image loading)
+
+### Environment-Specific Considerations
+
+1. **Vercel Environment vs Local Development**:
+   - Authentication mechanisms behave differently in Vercel compared to local development
+   - Cookie persistence and sharing differs between environments
+   - Add environment-specific debugging logs during deployment
+   - Test authentication flows specifically in the Vercel environment before full deployment
+
+2. **Debugging Vercel Deployments**:
+   - Use detailed console logging for troubleshooting
+   - Check Vercel logs for authentication errors
+   - Test API endpoints directly to isolate issues
+   - Implement proper error boundaries and fallbacks
