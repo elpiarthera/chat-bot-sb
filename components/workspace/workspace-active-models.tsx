@@ -120,7 +120,8 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
         const response = await fetch(
           `/api/workspaces/${workspaceId}/active-models`,
           {
-            method: "GET"
+            method: "GET",
+            credentials: "include"
           }
         )
 
