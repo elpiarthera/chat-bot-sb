@@ -1,0 +1,166 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Firecrawl Web Scraper",
+    "description": "A tool to scrape web content and convert it to markdown format without any summarization or modification",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.firecrawl.dev"
+    }
+  ],
+  "paths": {
+    "/v1/scrape": {
+      "post": {
+        "description": "Scrapes content from a given URL and returns the raw content exactly as it appears on the page without summarization",
+        "operationId": "scrapeUrlRaw",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "The complete URL to scrape including protocol (e.g., 'https://example.com')",
+                    "example": "https://example.com"
+                  },
+                  "formats": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": ["markdown", "html", "rawHtml", "json", "extract"]
+                    },
+                    "default": ["markdown"],
+                    "description": "The output formats to return"
+                  },
+                  "jsonOptions": {
+                    "type": "object",
+                    "properties": {
+                      "prompt": {
+                        "type": "string",
+                        "description": "A prompt to extract specific content from the page",
+                        "example": "Extract only the main article content, excluding navigation, headers, footers and sidebars"
+                      }
+                    },
+                    "description": "Options for JSON extraction"
+                  },
+                  "onlyMainContent": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Extract only the main content of the page, excluding navigation and UI elements"
+                  },
+                  "returnRawContent": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Return the content exactly as scraped without any summarization or modifications"
+                  }
+                }
+              },
+              "examples": {
+                "basic": {
+                  "value": {
+                    "url": "https://docs.firecrawl.dev/v1-welcome",
+                    "formats": ["markdown"],
+                    "onlyMainContent": true,
+                    "returnRawContent": true
+                  }
+                },
+                "extract": {
+                  "value": {
+                    "url": "https://docs.firecrawl.dev/v1-welcome",
+                    "formats": ["json"],
+                    "jsonOptions": {
+                      "prompt": "Extract only the main article content about Firecrawl V1, excluding navigation, headers, footers and sidebars"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response with raw content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "markdown": {
+                          "type": "string",
+                          "description": "The raw scraped content in markdown format without summarization"
+                        },
+                        "json": {
+                          "type": "object",
+                          "description": "Extracted content based on the prompt"
+                        },
+                        "metadata": {
+                          "type": "object",
+                          "properties": {
+                            "title": { 
+                              "type": "string",
+                              "description": "The title of the webpage" 
+                            },
+                            "sourceURL": { 
+                              "type": "string",
+                              "description": "The source URL that was scraped" 
+                            },
+                            "statusCode": { 
+                              "type": "number",
+                              "description": "The HTTP status code of the response" 
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "data": {
+                    "markdown": "# Example Domain\n\nThis domain is for use in illustrative examples in documents.",
+                    "metadata": {
+                      "title": "Example Domain",
+                      "sourceURL": "https://example.com",
+                      "statusCode": 200
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

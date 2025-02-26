@@ -1,0 +1,115 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Content Saver",
+    "description": "A tool to save scraped web content to your library without manual copying",
+    "version": "v1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api/tools/save-content"
+    }
+  ],
+  "paths": {
+    "/save": {
+      "post": {
+        "description": "Saves content to your library for future reference",
+        "operationId": "saveContent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content", "title"],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "The content to save (markdown or text)"
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Title for the saved content"
+                  },
+                  "sourceUrl": {
+                    "type": "string",
+                    "description": "Original source URL of the content (optional)"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": ["markdown", "text", "html"],
+                    "default": "markdown",
+                    "description": "Format of the content being saved"
+                  },
+                  "folder": {
+                    "type": "string",
+                    "description": "Folder to save the content in (optional)",
+                    "default": "Scrapes"
+                  }
+                }
+              },
+              "examples": {
+                "basic": {
+                  "value": {
+                    "content": "# Example Content\n\nThis is some scraped content.",
+                    "title": "Example Scrape",
+                    "sourceUrl": "https://example.com",
+                    "format": "markdown"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Content saved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "Unique identifier for the saved content"
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "URL to access the saved content"
+                    }
+                  }
+                },
+                "example": {
+                  "success": true,
+                  "id": "doc_123456",
+                  "url": "/library/Scrapes/Example-Scrape"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} 
