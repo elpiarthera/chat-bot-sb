@@ -10,6 +10,7 @@ import {
 } from "@/types"
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
+import { Workspace } from "@/types/workspace"
 import { Dispatch, SetStateAction, createContext } from "react"
 
 /**
@@ -63,8 +64,8 @@ interface ChatbotUIContext {
   setTools: Dispatch<SetStateAction<Tables<"tools">[]>>
 
   /** User workspaces */
-  workspaces: Tables<"workspaces">[]
-  setWorkspaces: Dispatch<SetStateAction<Tables<"workspaces">[]>>
+  workspaces: Workspace[]
+  setWorkspaces: Dispatch<SetStateAction<Workspace[]>>
 
   // MODELS STORE
   /** Mapping of model names to environment keys */
@@ -85,8 +86,8 @@ interface ChatbotUIContext {
 
   // WORKSPACE STORE
   /** Currently selected workspace */
-  selectedWorkspace: Tables<"workspaces"> | null
-  setSelectedWorkspace: Dispatch<SetStateAction<Tables<"workspaces"> | null>>
+  selectedWorkspace: Workspace | null
+  setSelectedWorkspace: Dispatch<SetStateAction<Workspace | null>>
 
   /** Images associated with workspaces */
   workspaceImages: WorkspaceImage[]
