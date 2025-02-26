@@ -36,6 +36,23 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
     availableOpenRouterModels
   } = useContext(ChatbotUIContext)
 
+  // Add detailed logging to check what models are available
+  console.log("Models context data:", {
+    customModels: models?.length || 0,
+    hostedModels: availableHostedModels?.length || 0,
+    localModels: availableLocalModels?.length || 0,
+    openRouterModels: availableOpenRouterModels?.length || 0
+  })
+
+  if (availableHostedModels?.length) {
+    console.log(
+      "First few hosted models:",
+      availableHostedModels.slice(0, 3).map(m => m.modelName)
+    )
+  } else {
+    console.log("No hosted models available")
+  }
+
   // Create a ref to store previous values
   const prevActiveModelIdsRef = useRef<string[]>([])
 
@@ -124,7 +141,13 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
           `/api/workspaces/${workspaceId}/active-models`,
           {
             method: "GET",
-            credentials: "include"
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              // Explicitly disable cache to avoid stale auth issues
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache"
+            }
           }
         )
 

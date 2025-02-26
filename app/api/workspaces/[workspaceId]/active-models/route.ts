@@ -26,13 +26,30 @@ export async function GET(
 
     // Create a Supabase client with proper authentication
     const cookieStore = cookies()
+    // Log available cookies
+    console.log(
+      "🔍 Active Models API: Available cookies:",
+      cookieStore
+        .getAll()
+        .map(c => c.name)
+        .join(", ")
+    )
+
+    // Update to use getAll and setAll as recommended by Supabase
     const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
+          getAll: () => {
+            return cookieStore.getAll().map(cookie => ({
+              name: cookie.name,
+              value: cookie.value
+            }))
+          },
+          setAll: cookies => {
+            // This is handled by middleware in Next.js
+            return
           }
         }
       }
@@ -44,11 +61,17 @@ export async function GET(
       error: userError
     } = await supabase.auth.getUser()
 
-    if (userError || !user) {
+    if (userError) {
+      console.error("❌ Active Models API: Auth error:", userError.message)
       console.error(
-        "❌ Active Models API: Auth error:",
-        userError?.message || "No user found"
+        "❌ Active Models API: Auth error details:",
+        JSON.stringify(userError)
       )
+    }
+
+    if (!user) {
+      console.error("❌ Active Models API: No authenticated user found")
+      // Return empty array instead of 401 for GET requests - more forgiving
       return NextResponse.json([])
     }
 
@@ -85,13 +108,30 @@ export async function POST(
 
     // Create a Supabase client with proper authentication
     const cookieStore = cookies()
+    // Log available cookies for debugging
+    console.log(
+      "🔍 Active Models API (POST): Available cookies:",
+      cookieStore
+        .getAll()
+        .map(c => c.name)
+        .join(", ")
+    )
+
+    // Update to use getAll and setAll as recommended by Supabase
     const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
+          getAll: () => {
+            return cookieStore.getAll().map(cookie => ({
+              name: cookie.name,
+              value: cookie.value
+            }))
+          },
+          setAll: cookies => {
+            // This is handled by middleware in Next.js
+            return
           }
         }
       }
@@ -103,11 +143,20 @@ export async function POST(
       error: userError
     } = await supabase.auth.getUser()
 
-    if (userError || !user) {
+    if (userError) {
       console.error(
-        "❌ Active Models API: Auth error:",
-        userError?.message || "No user found"
+        "❌ Active Models API (POST): Auth error:",
+        userError.message
       )
+      console.error(
+        "❌ Active Models API (POST): Auth error details:",
+        JSON.stringify(userError)
+      )
+    }
+
+    if (!user) {
+      console.error("❌ Active Models API (POST): No authenticated user found")
+      // For POST, return 401 since we need authentication
       return NextResponse.json(
         { error: "Authentication error" },
         { status: 401 }

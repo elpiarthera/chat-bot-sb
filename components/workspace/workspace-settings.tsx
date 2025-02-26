@@ -142,6 +142,7 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
             headers: {
               "Content-Type": "application/json"
             },
+            credentials: "include",
             body: JSON.stringify({ activeModels })
           }
         )

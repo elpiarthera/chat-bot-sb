@@ -12,7 +12,7 @@ export async function GET() {
   console.log("🔍 OpenAI models API: Starting to fetch models")
 
   try {
-    // Check if we're running on Vercel
+    // Add isVercel check to the top
     const isVercel = process.env.VERCEL === "1" || process.env.VERCEL === "true"
     console.log(
       `🔍 OpenAI models API: Running in ${isVercel ? "Vercel" : "local"} environment`
@@ -20,13 +20,29 @@ export async function GET() {
 
     // Direct cookie access - simpler approach
     const cookieStore = cookies()
+    console.log(
+      "🔍 OpenAI models API: Available cookies:",
+      cookieStore
+        .getAll()
+        .map(c => c.name)
+        .join(", ")
+    ) // Log available cookies
+
+    // Update to use getAll and setAll as recommended by Supabase
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
+          getAll: () => {
+            return cookieStore.getAll().map(cookie => ({
+              name: cookie.name,
+              value: cookie.value
+            }))
+          },
+          setAll: cookies => {
+            // This is handled by middleware in Next.js
+            return
           }
         }
       }
@@ -37,9 +53,14 @@ export async function GET() {
       data: { user }
     } = await supabase.auth.getUser()
 
+    // Log authentication details
+    console.log(
+      `🔍 OpenAI models API: Authentication result:`,
+      user ? `User authenticated: ${user.id}` : "No user found"
+    )
+
     if (!user) {
-      console.log("⚠️ OpenAI models API: No authenticated user")
-      // Return hardcoded models if no user found
+      console.log("❌ OpenAI models API: User not authenticated")
       return new Response(
         JSON.stringify({
           models: OPENAI_LLM_LIST.map(model => ({ id: model.modelId })),
@@ -58,11 +79,59 @@ export async function GET() {
     console.log(`✅ OpenAI models API: User authenticated: ${user.id}`)
 
     // Get the user's profile
-    const { data: profile } = await supabase
+    console.log(`🔍 OpenAI models API: Retrieving profile for user ${user.id}`)
+
+    const profileQuery = supabase
       .from("profiles")
       .select("*")
       .eq("user_id", user.id)
       .single()
+
+    console.log(
+      `🔍 OpenAI models API: Profile query:`,
+      `SELECT * FROM profiles WHERE user_id = '${user.id}'`
+    )
+
+    const { data: profile, error: profileError } = await profileQuery
+
+    if (profileError) {
+      console.error(
+        `❌ OpenAI models API: Error retrieving profile:`,
+        profileError
+      )
+    }
+
+    // Add detailed logging about the profile and API key
+    console.log(
+      `🔍 OpenAI models API: Profile retrieval result for user ${user.id}:`,
+      profile ? "Profile found" : "No profile found"
+    )
+
+    if (profile) {
+      // Log the profile keys to see its structure
+      console.log(`🔍 OpenAI models API: Profile keys:`, Object.keys(profile))
+
+      // Check specifically for the openai_api_key field
+      if ("openai_api_key" in profile) {
+        console.log(
+          `🔍 OpenAI models API: OpenAI API key in profile: ${profile.openai_api_key ? "Present (not empty)" : "Empty string"}`
+        )
+      } else {
+        console.log(
+          `🔍 OpenAI models API: OpenAI API key field not found in profile`
+        )
+      }
+
+      // If organization ID is set, log that too
+      if (profile.openai_organization_id) {
+        console.log("🔍 OpenAI models API: Organization ID is set in profile")
+      }
+    } else {
+      // Log the query that was run to check for issues
+      console.log(
+        `🔍 OpenAI models API: No profile found for user_id=${user.id}. Check Supabase table.`
+      )
+    }
 
     if (!profile || !profile.openai_api_key) {
       console.log("⚠️ OpenAI models API: No API key in profile")
