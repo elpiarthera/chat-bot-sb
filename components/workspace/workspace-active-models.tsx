@@ -123,11 +123,8 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
         const response = await fetch(
           `/api/workspaces/${workspaceId}/active-models`,
           {
-            credentials: "include",
-            headers: {
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              Pragma: "no-cache"
-            }
+            method: "GET",
+            credentials: "include"
           }
         )
 

@@ -24,25 +24,8 @@ export async function GET(
       return NextResponse.json([])
     }
 
-    // Check if we're running on Vercel
-    const isVercel = process.env.VERCEL === "1" || process.env.VERCEL === "true"
-    console.log(
-      `🔍 Active Models API: Running in ${isVercel ? "Vercel" : "local"} environment`
-    )
-
     // Create a Supabase client with proper authentication
     const cookieStore = cookies()
-
-    // Log available cookies for debugging (names only, not values)
-    try {
-      const cookieNames = cookieStore.getAll().map(cookie => cookie.name)
-      console.log(
-        `🔍 Active Models API: Available cookies: ${cookieNames.join(", ")}`
-      )
-    } catch (cookieError) {
-      console.error("❌ Active Models API: Error getting cookies:", cookieError)
-    }
-
     const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -56,26 +39,22 @@ export async function GET(
     )
 
     // Get the authenticated user
-    console.log("🔍 Active Models API: Attempting to get authenticated user")
     const {
       data: { user },
       error: userError
     } = await supabase.auth.getUser()
 
-    if (userError) {
-      console.error("❌ Active Models API: Auth error:", userError.message)
-      return NextResponse.json([])
-    }
-
-    if (!user) {
-      console.log("⚠️ Active Models API: No authenticated user")
+    if (userError || !user) {
+      console.error(
+        "❌ Active Models API: Auth error:",
+        userError?.message || "No user found"
+      )
       return NextResponse.json([])
     }
 
     console.log(`✅ Active Models API: User authenticated: ${user.id}`)
 
     // Query the active models
-    console.log("🔍 Active Models API: Querying active models from database")
     const { data, error } = await supabase
       .from("workspace_active_models")
       .select("*")
@@ -104,25 +83,8 @@ export async function POST(
     const workspaceId = params.workspaceId
     console.log(`🔍 Active Models API: Saving for workspace ${workspaceId}`)
 
-    // Check if we're running on Vercel
-    const isVercel = process.env.VERCEL === "1" || process.env.VERCEL === "true"
-    console.log(
-      `🔍 Active Models API: Running in ${isVercel ? "Vercel" : "local"} environment`
-    )
-
     // Create a Supabase client with proper authentication
     const cookieStore = cookies()
-
-    // Log available cookies for debugging (names only, not values)
-    try {
-      const cookieNames = cookieStore.getAll().map(cookie => cookie.name)
-      console.log(
-        `🔍 Active Models API: Available cookies: ${cookieNames.join(", ")}`
-      )
-    } catch (cookieError) {
-      console.error("❌ Active Models API: Error getting cookies:", cookieError)
-    }
-
     const supabase = createServerClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -136,23 +98,20 @@ export async function POST(
     )
 
     // Get the authenticated user
-    console.log("🔍 Active Models API: Attempting to get authenticated user")
     const {
       data: { user },
       error: userError
     } = await supabase.auth.getUser()
 
-    if (userError) {
-      console.error("❌ Active Models API: Auth error:", userError.message)
+    if (userError || !user) {
+      console.error(
+        "❌ Active Models API: Auth error:",
+        userError?.message || "No user found"
+      )
       return NextResponse.json(
         { error: "Authentication error" },
         { status: 401 }
       )
-    }
-
-    if (!user) {
-      console.log("⚠️ Active Models API: No authenticated user")
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     console.log(`✅ Active Models API: User authenticated: ${user.id}`)
