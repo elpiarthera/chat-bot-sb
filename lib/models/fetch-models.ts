@@ -162,6 +162,7 @@ export const fetchOpenAIModels = async () => {
     console.log(
       `Successfully fetched ${models?.length || 0} OpenAI models from API`
     )
+
     const openaiModels: LLM[] = models.map((model: any) => {
       const staticModel = OPENAI_LLM_LIST.find(m => m.modelId === model.id)
 

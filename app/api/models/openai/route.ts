@@ -5,11 +5,10 @@ import OpenAI from "openai"
 
 export async function GET() {
   try {
-    // Try to get the server profile, but handle errors gracefully
+    // Try to get the server profile
     let profile
     try {
       profile = await getServerProfile()
-      console.log("OpenAI models API: Successfully got profile")
     } catch (profileError) {
       console.error("OpenAI models API: Error getting profile:", profileError)
       // Return a fallback response with hardcoded models
@@ -37,12 +36,17 @@ export async function GET() {
     }
 
     try {
-      // Try to fetch models from OpenAI
-      const openai = new OpenAI({
-        apiKey: profile.openai_api_key,
-        organization: profile.openai_organization_id
-      })
+      // Try to fetch models from OpenAI, handle organization ID as optional
+      const openaiConfig: any = {
+        apiKey: profile.openai_api_key
+      }
 
+      // Only add organization if it exists
+      if (profile.openai_organization_id) {
+        openaiConfig.organization = profile.openai_organization_id
+      }
+
+      const openai = new OpenAI(openaiConfig)
       const response = await openai.models.list()
 
       // Filter for chat models only (those starting with gpt-)
@@ -69,7 +73,7 @@ export async function GET() {
         { status: 200 }
       )
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("OpenAI models API: Unexpected error:", error)
     // Return a fallback response with hardcoded models as a last resort
     return new Response(
