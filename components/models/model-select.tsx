@@ -61,7 +61,8 @@ export const ModelSelect: FC<ModelSelectProps> = ({
         const response = await fetch(
           `/api/workspaces/${selectedWorkspace.id}/active-models`,
           {
-            method: "GET"
+            method: "GET",
+            credentials: "include"
           }
         )
 

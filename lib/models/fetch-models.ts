@@ -15,7 +15,9 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
       providers.push("openai")
     }
 
-    const response = await fetch("/api/keys")
+    const response = await fetch("/api/keys", {
+      credentials: "include"
+    })
 
     if (!response.ok) {
       throw new Error(`Server is not responding.`)
@@ -141,7 +143,9 @@ export const fetchOpenRouterModels = async () => {
 
 export const fetchOpenAIModels = async () => {
   try {
-    const response = await fetch("/api/models/openai")
+    const response = await fetch("/api/models/openai", {
+      credentials: "include"
+    })
 
     if (!response.ok) {
       throw new Error(`OpenAI models API is not responding.`)
