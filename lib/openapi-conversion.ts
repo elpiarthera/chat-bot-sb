@@ -1,4 +1,5 @@
-import $RefParser from "@apidevtools/json-schema-ref-parser"
+// Removed static import in favor of dynamic imports to fix webpack HMD issues
+// import $RefParser from "@apidevtools/json-schema-ref-parser"
 
 interface OpenAPIData {
   info: {
@@ -16,38 +17,49 @@ interface OpenAPIData {
 }
 
 export const validateOpenAPI = async (openapiSpec: any) => {
-  if (!openapiSpec.info) {
+  // Dereference the spec if needed
+  let dereferenced = openapiSpec
+  try {
+    const RefParser = (await import("@apidevtools/json-schema-ref-parser"))
+      .default
+    dereferenced = await RefParser.dereference(openapiSpec)
+  } catch (error) {
+    console.warn("Could not dereference OpenAPI spec:", error)
+    // Continue with the original spec
+  }
+
+  if (!dereferenced.info) {
     throw new Error("('info'): field required")
   }
 
-  if (!openapiSpec.info.title) {
+  if (!dereferenced.info.title) {
     throw new Error("('info', 'title'): field required")
   }
 
-  if (!openapiSpec.info.version) {
+  if (!dereferenced.info.version) {
     throw new Error("('info', 'version'): field required")
   }
 
   if (
-    !openapiSpec.servers ||
-    !openapiSpec.servers.length ||
-    !openapiSpec.servers[0].url
+    !dereferenced.servers ||
+    !dereferenced.servers.length ||
+    !dereferenced.servers[0].url
   ) {
     throw new Error("Could not find a valid URL in `servers`")
   }
 
-  if (!openapiSpec.paths || Object.keys(openapiSpec.paths).length === 0) {
+  if (!dereferenced.paths || Object.keys(dereferenced.paths).length === 0) {
     throw new Error("No paths found in the OpenAPI spec")
   }
 
-  Object.keys(openapiSpec.paths).forEach(path => {
+  Object.keys(dereferenced.paths).forEach(path => {
     if (!path.startsWith("/")) {
       throw new Error(`Path ${path} does not start with a slash; skipping`)
     }
   })
 
   if (
-    Object.values(openapiSpec.paths).some((methods: any) =>
+    Object.values(dereferenced.paths).some((methods: any) =>
       Object.values(methods).some((spec: any) => !spec.operationId)
     )
   ) {
@@ -55,7 +67,7 @@ export const validateOpenAPI = async (openapiSpec: any) => {
   }
 
   if (
-    Object.values(openapiSpec.paths).some((methods: any) =>
+    Object.values(dereferenced.paths).some((methods: any) =>
       Object.values(methods).some(
         (spec: any) => spec.requestBody && !spec.requestBody.content
       )
@@ -67,7 +79,7 @@ export const validateOpenAPI = async (openapiSpec: any) => {
   }
 
   if (
-    Object.values(openapiSpec.paths).some((methods: any) =>
+    Object.values(dereferenced.paths).some((methods: any) =>
       Object.values(methods).some((spec: any) => {
         if (spec.requestBody?.content?.["application/json"]?.schema) {
           if (
@@ -108,7 +120,19 @@ export const openapiToFunctions = async (
     for (const [method, specWithRef] of Object.entries(
       methods as Record<string, any>
     )) {
-      const spec: any = await $RefParser.dereference(specWithRef)
+      // Use a try-catch block to handle potential errors with dereference
+      let spec: any
+      try {
+        // Import the parser dynamically only when needed
+        const RefParser = (await import("@apidevtools/json-schema-ref-parser"))
+          .default
+        spec = await RefParser.dereference(specWithRef)
+      } catch (error) {
+        // Fallback if dereference fails
+        console.error("Error dereferencing schema:", error)
+        spec = specWithRef
+      }
+
       const functionName = spec.operationId
       const desc = spec.description || spec.summary || ""
 

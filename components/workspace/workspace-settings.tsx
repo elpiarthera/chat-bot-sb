@@ -27,6 +27,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 import { TextareaAutosize } from "../ui/textarea-autosize"
 import { WithTooltip } from "../ui/with-tooltip"
 import { DeleteWorkspace } from "./delete-workspace"
+import { updateWorkspaceActiveModels } from "@/db/workspace-active-models"
+import { WorkspaceActiveModels } from "./workspace-active-models"
 
 interface WorkspaceSettingsProps {}
 
@@ -65,6 +67,11 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
       selectedWorkspace?.include_workspace_instructions,
     embeddingsProvider: selectedWorkspace?.embeddings_provider
   })
+
+  // Add state for active models
+  const [activeModels, setActiveModels] = useState<
+    { modelId: string; provider: string }[]
+  >([])
 
   useEffect(() => {
     const workspaceImage =
@@ -117,6 +124,37 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
       include_workspace_instructions:
         defaultChatSettings.includeWorkspaceInstructions
     })
+
+    // Save active models
+    if (profile) {
+      console.log("Debug - Saving active models:", {
+        workspaceId: selectedWorkspace.id,
+        userId: profile.id,
+        activeModels: activeModels
+      })
+
+      try {
+        // Use the API route instead of direct database access
+        const response = await fetch(
+          `/api/workspaces/${selectedWorkspace.id}/active-models`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ activeModels })
+          }
+        )
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || "Failed to save active models")
+        }
+      } catch (error) {
+        console.error("Error saving active models:", error)
+        toast.error("Failed to save active models. Please try again.")
+      }
+    }
 
     if (
       defaultChatSettings.model &&
@@ -199,9 +237,10 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
           </SheetHeader>
 
           <Tabs defaultValue="main">
-            <TabsList className="mt-4 grid w-full grid-cols-2">
+            <TabsList className="mt-4 grid w-full grid-cols-3">
               <TabsTrigger value="main">Main</TabsTrigger>
               <TabsTrigger value="defaults">Defaults</TabsTrigger>
+              <TabsTrigger value="models">Models</TabsTrigger>
             </TabsList>
 
             <TabsContent className="mt-4 space-y-4" value="main">
@@ -270,6 +309,19 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
                 chatSettings={defaultChatSettings as any}
                 onChangeChatSettings={setDefaultChatSettings}
               />
+            </TabsContent>
+
+            <TabsContent className="mt-5" value="models">
+              <div className="mb-4 text-sm">
+                Select which models should be available in this workspace.
+              </div>
+
+              {selectedWorkspace && (
+                <WorkspaceActiveModels
+                  workspaceId={selectedWorkspace.id}
+                  onActiveModelsChange={setActiveModels}
+                />
+              )}
             </TabsContent>
           </Tabs>
         </div>

@@ -691,3 +691,22 @@ These changes significantly improved the application's performance and reliabili
    - Add proper type annotations for all state and props
 
 These patterns help maintain type safety, prevent runtime errors, and make the code more maintainable. They should be followed when making future changes to the codebase.
+
+## What happened and why
+
+The issue occurred because:
+1. Your codebase had all the necessary code to interact with the `workspace_active_models` table (the database functions in `db/workspace-active-models.ts`)
+2. The migration file for creating this table existed in `supabase/migrations/20240617000000_add_workspace_active_models.sql`
+3. However, the migration had not been applied to your actual database, so the table didn't exist yet
+
+When you tried to use the feature, the code was attempting to query or modify a table that didn't exist, leading to the database error.
+
+## Going forward
+
+If you add any more tables or make database schema changes in the future, remember that:
+
+1. Creating the migration file is only the first step
+2. The migration needs to be applied to the database, either:
+   - Through the Supabase dashboard SQL Editor (as you've done)
+   - Using the Supabase CLI if it's properly configured
+   - By other means such as the Supabase Management API

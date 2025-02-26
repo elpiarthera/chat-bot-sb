@@ -10,6 +10,58 @@ import { Inter } from "next/font/google"
 import { cookies } from "next/headers"
 import { ReactNode } from "react"
 import "./globals.css"
+import Script from "next/script"
+import dynamic from "next/dynamic"
+
+// Create a client wrapper for the ErrorBoundary
+const ClientErrorBoundary = dynamic(
+  () => import("@/components/utility/client-error-boundary"),
+  { ssr: false }
+)
+
+// Add a simple client-side only debug component
+const DebugInitializer = dynamic(
+  () =>
+    Promise.resolve(() => {
+      // This code will only run on the client
+      console.log("🔍 DebugInitializer: Application starting up")
+
+      // Add a global error handler
+      if (typeof window !== "undefined") {
+        window.onerror = function (message, source, lineno, colno, error) {
+          console.error("🚨 Global error caught:", {
+            message,
+            source,
+            lineno,
+            colno
+          })
+          if (error) {
+            console.error("Error details:", error)
+          }
+          return false
+        }
+
+        // Also handle unhandled promise rejections
+        window.addEventListener("unhandledrejection", function (event) {
+          console.error("🚨 Unhandled Promise Rejection:", event.reason)
+        })
+
+        console.log("🔍 Global error handlers installed")
+
+        // This is a diagnostic step - force clear any localStorage that might be causing issues
+        try {
+          console.log("Checking localStorage...")
+          const keys = Object.keys(localStorage)
+          console.log(`Found ${keys.length} localStorage items:`, keys)
+        } catch (e) {
+          console.error("Error accessing localStorage:", e)
+        }
+      }
+
+      return null
+    }),
+  { ssr: false }
+)
 
 const inter = Inter({ subsets: ["latin"] })
 const APP_NAME = "Chatbot UI"
@@ -88,19 +140,47 @@ export default async function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script src="/sw-cleanup.js" strategy="beforeInteractive" />
+
+        {/* Add minimal inline script that will help with debugging */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+            console.log("🔍 Inline script executed");
+            window.APP_DEBUG = {
+              startTime: Date.now(),
+              errors: []
+            };
+            
+            // Try to unregister service workers directly
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                  registration.unregister();
+                }
+              });
+            }
+          `
+          }}
+        />
+      </head>
       <body className={inter.className}>
-        <Providers attribute="class" defaultTheme="dark">
-          <TranslationsProvider
-            namespaces={i18nNamespaces}
-            locale={locale}
-            resources={resources}
-          >
-            <Toaster richColors position="top-center" duration={3000} />
-            <div className="bg-background text-foreground flex h-dvh flex-col items-center overflow-x-auto">
-              {session ? <GlobalState>{children}</GlobalState> : children}
-            </div>
-          </TranslationsProvider>
-        </Providers>
+        <DebugInitializer />
+        <ClientErrorBoundary>
+          <Providers attribute="class" defaultTheme="dark">
+            <TranslationsProvider
+              namespaces={i18nNamespaces}
+              locale={locale}
+              resources={resources}
+            >
+              <Toaster richColors position="top-center" duration={3000} />
+              <div className="bg-background text-foreground flex h-dvh flex-col items-center overflow-x-auto">
+                {session ? <GlobalState>{children}</GlobalState> : children}
+              </div>
+            </TranslationsProvider>
+          </Providers>
+        </ClientErrorBoundary>
       </body>
     </html>
   )

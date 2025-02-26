@@ -134,76 +134,263 @@ export const GlobalState: FC<GlobalStateProps> = ({ children }) => {
   })
 
   useEffect(() => {
+    console.log("🔍 GlobalState: Initializing component")
+
+    let isMounted = true // Flag to prevent state updates after unmounting
+
     ;(async () => {
-      const profile = await fetchStartingData()
+      try {
+        console.log("🔍 GlobalState: Starting data initialization")
 
-      if (profile) {
-        const hostedModelRes = await fetchHostedModels(profile)
-        if (!hostedModelRes) return
+        // Fetch profile data first
+        let profileData: Tables<"profiles"> | null = null
+        try {
+          profileData = await fetchStartingData()
 
-        setEnvKeyMap(hostedModelRes.envKeyMap)
-        setAvailableHostedModels(hostedModelRes.hostedModels)
+          if (!profileData && isMounted) {
+            console.error(
+              "🚨 GlobalState: No profile found, initialization stopped"
+            )
+            // Ensure all model arrays are initialized with empty arrays
+            setAvailableHostedModels([])
+            setAvailableLocalModels([])
+            setAvailableOpenRouterModels([])
+            return
+          }
 
-        if (
-          profile["openrouter_api_key"] ||
-          hostedModelRes.envKeyMap["openrouter"]
-        ) {
-          const openRouterModels = await fetchOpenRouterModels()
-          if (!openRouterModels) return
-          setAvailableOpenRouterModels(openRouterModels)
+          console.log("✅ GlobalState: Profile loaded successfully", {
+            id: profileData?.id
+          })
+        } catch (profileError) {
+          console.error("🚨 GlobalState: Error fetching profile:", profileError)
+          if (isMounted) {
+            // Initialize all model arrays with empty arrays on error
+            setAvailableHostedModels([])
+            setAvailableLocalModels([])
+            setAvailableOpenRouterModels([])
+            return
+          }
         }
-      }
 
-      if (process.env.NEXT_PUBLIC_OLLAMA_URL) {
-        const localModels = await fetchOllamaModels()
-        if (!localModels) return
-        setAvailableLocalModels(localModels)
+        if (!isMounted) return // Stop if component was unmounted
+
+        // Now fetch models
+        console.log("🔍 GlobalState: Fetching models")
+
+        try {
+          if (profileData) {
+            const hostedModelRes = await fetchHostedModels(profileData)
+
+            if (hostedModelRes && isMounted) {
+              console.log(
+                "✅ GlobalState: Hosted models loaded:",
+                hostedModelRes.hostedModels.length
+              )
+              setEnvKeyMap(hostedModelRes.envKeyMap || {})
+              setAvailableHostedModels(hostedModelRes.hostedModels || [])
+            } else if (isMounted) {
+              console.warn("⚠️ GlobalState: No hosted models returned")
+              // Initialize with empty array to prevent null errors
+              setAvailableHostedModels([])
+            }
+
+            // Only try to fetch OpenRouter models if the API key is available
+            if (
+              (profileData["openrouter_api_key"] ||
+                (hostedModelRes?.envKeyMap &&
+                  hostedModelRes.envKeyMap["openrouter"])) &&
+              isMounted
+            ) {
+              try {
+                const openRouterModels = await fetchOpenRouterModels()
+                if (openRouterModels && isMounted) {
+                  console.log(
+                    "✅ GlobalState: OpenRouter models loaded:",
+                    openRouterModels.length
+                  )
+                  setAvailableOpenRouterModels(openRouterModels)
+                } else if (isMounted) {
+                  console.warn("⚠️ GlobalState: No OpenRouter models returned")
+                  setAvailableOpenRouterModels([])
+                }
+              } catch (orError) {
+                console.error(
+                  "🚨 GlobalState: Error fetching OpenRouter models:",
+                  orError
+                )
+                if (isMounted) {
+                  setAvailableOpenRouterModels([])
+                }
+              }
+            } else {
+              console.log(
+                "ℹ️ GlobalState: No OpenRouter API key found, skipping"
+              )
+              if (isMounted) setAvailableOpenRouterModels([])
+            }
+
+            // Only try to fetch Ollama models if the URL is available
+            if (process.env.NEXT_PUBLIC_OLLAMA_URL && isMounted) {
+              try {
+                const localModels = await fetchOllamaModels()
+                if (localModels && isMounted) {
+                  console.log(
+                    "✅ GlobalState: Local models loaded:",
+                    localModels.length
+                  )
+                  setAvailableLocalModels(localModels)
+                } else if (isMounted) {
+                  console.warn("⚠️ GlobalState: No local models returned")
+                  setAvailableLocalModels([])
+                }
+              } catch (ollamaError) {
+                console.error(
+                  "🚨 GlobalState: Error fetching Ollama models:",
+                  ollamaError
+                )
+                if (isMounted) {
+                  setAvailableLocalModels([])
+                }
+              }
+            } else {
+              console.log("ℹ️ GlobalState: No Ollama URL found, skipping")
+              if (isMounted) setAvailableLocalModels([])
+            }
+          }
+
+          console.log("✅ GlobalState: Initialization complete")
+        } catch (modelError) {
+          console.error(
+            "🚨 GlobalState: Error during model initialization:",
+            modelError
+          )
+          // Make sure all model arrays are initialized on error
+          if (isMounted) {
+            setAvailableHostedModels([])
+            setAvailableLocalModels([])
+            setAvailableOpenRouterModels([])
+          }
+        }
+      } catch (err) {
+        console.error("🚨 GlobalState: Critical initialization error:", err)
+        if (isMounted) {
+          // Make sure all model arrays are initialized to prevent null errors
+          setAvailableHostedModels([])
+          setAvailableLocalModels([])
+          setAvailableOpenRouterModels([])
+        }
       }
     })()
-  }, [])
+
+    // Cleanup function to prevent state updates after unmounting
+    return () => {
+      isMounted = false
+      console.log("🧹 GlobalState: Component unmounting, cleanup performed")
+    }
+  }, [router])
 
   const fetchStartingData = async () => {
-    const session = (await supabase.auth.getSession()).data.session
+    try {
+      console.log("🔍 GlobalState: Fetching session")
+      const sessionResponse = await supabase.auth.getSession()
+      const session = sessionResponse.data.session
 
-    if (session) {
+      if (!session) {
+        console.warn("⚠️ GlobalState: No active session found")
+        return null
+      }
+
       const user = session.user
+      console.log("✅ GlobalState: Session found for user:", user.id)
 
-      const profile = await getProfileByUserId(user.id)
-      setProfile(profile)
+      try {
+        console.log("🔍 GlobalState: Fetching profile for user:", user.id)
+        const profile = await getProfileByUserId(user.id)
 
-      if (!profile.has_onboarded) {
-        return router.push("/setup")
-      }
-
-      const workspaces = await getWorkspacesByUserId(user.id)
-      setWorkspaces(workspaces)
-
-      for (const workspace of workspaces) {
-        let workspaceImageUrl = ""
-
-        if (workspace.image_path) {
-          workspaceImageUrl =
-            (await getWorkspaceImageFromStorage(workspace.image_path)) || ""
+        if (!profile) {
+          console.warn("⚠️ GlobalState: No profile found for user:", user.id)
+          return null
         }
 
-        if (workspaceImageUrl) {
-          const response = await fetch(workspaceImageUrl)
-          const blob = await response.blob()
-          const base64 = await convertBlobToBase64(blob)
+        console.log("✅ GlobalState: Profile loaded")
+        setProfile(profile)
 
-          setWorkspaceImages(prev => [
-            ...prev,
-            {
-              workspaceId: workspace.id,
-              path: workspace.image_path,
-              base64: base64,
-              url: workspaceImageUrl
+        if (!profile.has_onboarded) {
+          console.log(
+            "ℹ️ GlobalState: User not onboarded, redirecting to setup"
+          )
+          router.push("/setup")
+          return null
+        }
+
+        try {
+          console.log("🔍 GlobalState: Fetching workspaces")
+          const workspaces = await getWorkspacesByUserId(user.id)
+
+          if (!workspaces || workspaces.length === 0) {
+            console.warn("⚠️ GlobalState: No workspaces found for user")
+            setWorkspaces([])
+          } else {
+            console.log("✅ GlobalState: Workspaces loaded:", workspaces.length)
+            setWorkspaces(workspaces)
+
+            // Process workspace images
+            for (const workspace of workspaces) {
+              try {
+                if (workspace.image_path) {
+                  console.log(
+                    "🔍 GlobalState: Fetching image for workspace:",
+                    workspace.id
+                  )
+                  let workspaceImageUrl = await getWorkspaceImageFromStorage(
+                    workspace.image_path
+                  )
+
+                  if (workspaceImageUrl) {
+                    const response = await fetch(workspaceImageUrl)
+                    const blob = await response.blob()
+                    const base64 = await convertBlobToBase64(blob)
+
+                    setWorkspaceImages(prev => [
+                      ...prev,
+                      {
+                        workspaceId: workspace.id,
+                        path: workspace.image_path,
+                        base64: base64,
+                        url: workspaceImageUrl
+                      }
+                    ])
+                    console.log(
+                      "✅ GlobalState: Image loaded for workspace:",
+                      workspace.id
+                    )
+                  }
+                }
+              } catch (imageError) {
+                console.error(
+                  "🚨 GlobalState: Error loading workspace image:",
+                  imageError
+                )
+                // Continue with next workspace
+              }
             }
-          ])
+          }
+        } catch (workspacesError) {
+          console.error(
+            "🚨 GlobalState: Error fetching workspaces:",
+            workspacesError
+          )
+          setWorkspaces([])
         }
-      }
 
-      return profile
+        return profile
+      } catch (profileError) {
+        console.error("🚨 GlobalState: Error fetching profile:", profileError)
+        return null
+      }
+    } catch (sessionError) {
+      console.error("🚨 GlobalState: Error fetching session:", sessionError)
+      return null
     }
   }
 

@@ -47,6 +47,7 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
           onSelectModel={model => {
             onChangeChatSettings({ ...chatSettings, model })
           }}
+          showAllModels={false}
         />
       </div>
 

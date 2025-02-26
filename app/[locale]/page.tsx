@@ -4,9 +4,16 @@ import { ChatbotUISVG } from "@/components/icons/chatbotui-svg"
 import { IconArrowRight } from "@tabler/icons-react"
 import { useTheme } from "next-themes"
 import Link from "next/link"
+import { useEffect } from "react"
 
 export default function HomePage() {
   const { theme } = useTheme()
+
+  useEffect(() => {
+    console.log("HomePage mounted - theme is:", theme)
+  }, [theme])
+
+  console.log("HomePage rendering...")
 
   return (
     <div className="flex size-full flex-col items-center justify-center">
