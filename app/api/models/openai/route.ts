@@ -28,32 +28,98 @@ export async function GET() {
         .join(", ")
     ) // Log available cookies
 
-    // Update to use getAll and setAll as recommended by Supabase
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => {
+    // Ensure Supabase URL and Anon Key are set
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error(
+        "❌ OpenAI models API: Missing Supabase credentials in environment variables"
+      )
+      return new Response(
+        JSON.stringify({
+          error: "Server configuration error",
+          models: OPENAI_LLM_LIST.map(model => ({ id: model.modelId })),
+          source: "fallback"
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      )
+    }
+
+    // Create the server client with robust cookie handling
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        getAll: () => {
+          try {
             return cookieStore.getAll().map(cookie => ({
               name: cookie.name,
               value: cookie.value
             }))
-          },
-          setAll: cookies => {
-            // This is handled by middleware in Next.js
-            return
+          } catch (e) {
+            console.error("❌ OpenAI models API: Error getting cookies:", e)
+            return []
           }
+        },
+        setAll: cookies => {
+          // This is handled by middleware in Next.js
+          return
         }
       }
-    )
+    })
 
-    // Get the user directly - simplest reliable approach
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
+    // Try authentication with getUser first (recommended by Supabase)
+    let user = null
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser()
+      if (userError) {
+        console.error(
+          "❌ OpenAI models API: Error in getUser:",
+          userError.message
+        )
+      } else if (userData && userData.user) {
+        user = userData.user
+        console.log(
+          `✅ OpenAI models API: User authenticated via getUser: ${user.id}`
+        )
+      }
+    } catch (e) {
+      console.error("❌ OpenAI models API: Exception in getUser:", e)
+    }
 
-    // Log authentication details
+    // Fallback to getSession if getUser failed
+    if (!user) {
+      try {
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession()
+        if (sessionError) {
+          console.error(
+            "❌ OpenAI models API: Error in getSession:",
+            sessionError.message
+          )
+        } else if (
+          sessionData &&
+          sessionData.session &&
+          sessionData.session.user
+        ) {
+          user = sessionData.session.user
+          console.log(
+            `⚠️ OpenAI models API: User authenticated via fallback getSession: ${user.id}`
+          )
+        }
+      } catch (e) {
+        console.error(
+          "❌ OpenAI models API: Exception in getSession fallback:",
+          e
+        )
+      }
+    }
+
+    // Log authentication result
     console.log(
       `🔍 OpenAI models API: Authentication result:`,
       user ? `User authenticated: ${user.id}` : "No user found"

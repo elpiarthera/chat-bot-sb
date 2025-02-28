@@ -119,10 +119,50 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
   )
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
-    router.refresh()
-    return
+    try {
+      console.log("Attempting to sign out...")
+
+      // First, try the normal signOut method with global scope to invalidate all sessions
+      const { error } = await supabase.auth.signOut({ scope: "global" })
+
+      if (error) {
+        console.error("Error during sign out:", error.message)
+        // If there's an error with API key, log specifically
+        if (
+          error.message.includes("No API key") ||
+          error.message.includes("apikey")
+        ) {
+          console.error(
+            "API key error during signOut. Check Supabase initialization."
+          )
+        }
+      }
+
+      // Clear localStorage and sessionStorage as a fallback
+      try {
+        localStorage.clear()
+        sessionStorage.clear()
+        console.log("Browser storage cleared")
+
+        // Clear auth cookies manually
+        document.cookie.split(";").forEach(function (c) {
+          document.cookie = c
+            .replace(/^ +/, "")
+            .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+        })
+        console.log("Cookies cleared")
+      } catch (storageError) {
+        console.error("Failed to clear browser storage:", storageError)
+      }
+
+      // Force a complete page reload to clear any client-side state
+      console.log("Redirecting to login page...")
+      window.location.href = "/login"
+    } catch (error) {
+      console.error("Unexpected error during sign out:", error)
+      // Even if there's an error, still try to navigate away
+      window.location.href = "/login"
+    }
   }
 
   const handleSave = async () => {
@@ -329,6 +369,43 @@ export const ProfileSettings: FC<ProfileSettingsProps> = ({}) => {
               >
                 <IconLogout className="mr-1" size={20} />
                 Logout
+              </Button>
+
+              <Button
+                tabIndex={-1}
+                className="ml-2 text-xs"
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  // Clear all storage
+                  try {
+                    localStorage.clear()
+                    sessionStorage.clear()
+
+                    // Try to clear cookies manually by setting expiration in the past
+                    const cookies = document.cookie.split(";")
+                    for (let i = 0; i < cookies.length; i++) {
+                      const cookie = cookies[i]
+                      const eqPos = cookie.indexOf("=")
+                      const name =
+                        eqPos > -1
+                          ? cookie.substr(0, eqPos).trim()
+                          : cookie.trim()
+                      document.cookie =
+                        name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/"
+                    }
+
+                    // Force reload to homepage
+                    window.location.href = "/login"
+                  } catch (err) {
+                    console.error("Error in force logout:", err)
+                    // Last resort
+                    window.location.href = "/login"
+                  }
+                }}
+              >
+                <IconLogout className="mr-1" size={20} />
+                Force Logout
               </Button>
             </SheetTitle>
           </SheetHeader>
