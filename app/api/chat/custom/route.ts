@@ -4,7 +4,6 @@ import { createClient } from "@supabase/supabase-js"
 import { ServerRuntime } from "next"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
-
 export const runtime: ServerRuntime = "edge"
 
 export async function POST(request: Request) {

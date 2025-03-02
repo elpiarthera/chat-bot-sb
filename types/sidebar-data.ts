@@ -1,4 +1,5 @@
-import { Tables } from "@/supabase/types"
+// Define a local Tables type to avoid import issues
+type Tables<T extends string> = any
 
 export type DataListType =
   | Tables<"collections">[]

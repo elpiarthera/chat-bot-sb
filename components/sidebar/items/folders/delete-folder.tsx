@@ -61,7 +61,6 @@ export const DeleteFolder: FC<DeleteFolderProps> = ({
     setShowFolderDialog(false)
 
     const setStateFunction = stateUpdateFunctions[contentType]
-
     if (!setStateFunction) return
 
     setStateFunction((prevItems: any) =>
@@ -80,7 +79,6 @@ export const DeleteFolder: FC<DeleteFolderProps> = ({
 
   const handleDeleteFolderAndItems = async () => {
     const setStateFunction = stateUpdateFunctions[contentType]
-
     if (!setStateFunction) return
 
     const { error } = await supabase
@@ -104,7 +102,6 @@ export const DeleteFolder: FC<DeleteFolderProps> = ({
       <DialogTrigger asChild>
         <IconTrash className="hover:opacity-50" size={18} />
       </DialogTrigger>
-
       <DialogContent className="min-w-[550px]">
         <DialogHeader>
           <DialogTitle>Delete {folder.name}</DialogTitle>

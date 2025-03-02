@@ -13,17 +13,12 @@ export const processJSON = async (json: Blob): Promise<FileItemChunk[]> => {
     chunkSize: CHUNK_SIZE,
     chunkOverlap: CHUNK_OVERLAP
   })
+
   const splitDocs = await splitter.createDocuments([completeText])
-
   let chunks: FileItemChunk[] = []
-
-  splitDocs.forEach(doc => {
-    const docTokens = encode(doc.pageContent).length
-  })
 
   for (let i = 0; i < splitDocs.length; i++) {
     const doc = splitDocs[i]
-
     chunks.push({
       content: doc.pageContent,
       tokens: encode(doc.pageContent).length

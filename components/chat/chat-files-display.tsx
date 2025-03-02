@@ -22,6 +22,18 @@ import { FilePreview } from "../ui/file-preview"
 import { WithTooltip } from "../ui/with-tooltip"
 import { ChatRetrievalSettings } from "./chat-retrieval-settings"
 
+// Define a more complete interface for MessageImage to match what's expected
+interface ExtendedMessageImage extends MessageImage {
+  base64: string
+  file: File | null
+}
+
+// Define a more complete interface for ChatFile to match what's expected
+interface ExtendedChatFile extends ChatFile {
+  description: string
+  file: File | null
+}
+
 interface ChatFilesDisplayProps {}
 
 export const ChatFilesDisplay: FC<ChatFilesDisplayProps> = ({}) => {
@@ -43,8 +55,11 @@ export const ChatFilesDisplay: FC<ChatFilesDisplayProps> = ({}) => {
     setUseRetrieval
   } = useContext(ChatbotUIContext)
 
-  const [selectedFile, setSelectedFile] = useState<ChatFile | null>(null)
-  const [selectedImage, setSelectedImage] = useState<MessageImage | null>(null)
+  const [selectedFile, setSelectedFile] = useState<ExtendedChatFile | null>(
+    null
+  )
+  const [selectedImage, setSelectedImage] =
+    useState<ExtendedMessageImage | null>(null)
   const [showPreview, setShowPreview] = useState(false)
 
   const messageImages = [
@@ -62,7 +77,6 @@ export const ChatFilesDisplay: FC<ChatFilesDisplayProps> = ({}) => {
   ]
 
   const combinedMessageFiles = [...messageImages, ...combinedChatFiles]
-
   const getLinkAndView = async (file: ChatFile) => {
     const fileRecord = files.find(f => f.id === file.id)
 
@@ -130,12 +144,15 @@ export const ChatFilesDisplay: FC<ChatFilesDisplayProps> = ({}) => {
                     maxHeight: "56px",
                     maxWidth: "56px"
                   }}
-                  src={image.base64} // Preview images will always be base64
+                  src={
+                    (image as ExtendedMessageImage).url ||
+                    (image as ExtendedMessageImage).base64
+                  } // Use url if available, fallback to base64
                   alt="File image"
                   width={56}
                   height={56}
                   onClick={() => {
-                    setSelectedImage(image)
+                    setSelectedImage(image as ExtendedMessageImage)
                     setShowPreview(true)
                   }}
                 />
@@ -176,7 +193,9 @@ export const ChatFilesDisplay: FC<ChatFilesDisplayProps> = ({}) => {
                 <div
                   key={file.id}
                   className="relative flex h-[64px] cursor-pointer items-center space-x-4 rounded-xl border-2 px-4 py-3 hover:opacity-50"
-                  onClick={() => getLinkAndView(file)}
+                  onClick={() =>
+                    getLinkAndView(file as unknown as ExtendedChatFile)
+                  }
                 >
                   <div className="rounded bg-blue-500 p-2">
                     {(() => {

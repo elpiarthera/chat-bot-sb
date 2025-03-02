@@ -13,12 +13,11 @@ export async function getServerProfile() {
 
   try {
     const cookieStore = cookies()
-
     // Log available cookies for debugging (names only, not values)
     try {
       const cookieNames = cookieStore.getAll().map(cookie => cookie.name)
       console.log(
-        `🔍 getServerProfile: Available cookies: ${cookieNames.join(", ")}`
+        `🔍 getServerProfile: Available, cookies: ${cookieNames.join(", ")}`
       )
     } catch (cookieError) {
       console.error("❌ getServerProfile: Error getting cookies:", cookieError)
@@ -42,7 +41,7 @@ export async function getServerProfile() {
     } = await supabase.auth.getUser()
 
     if (userError) {
-      console.error("❌ getServerProfile: Auth error:", userError.message)
+      console.error("❌ getServerProfile: Auth, error:", userError.message)
 
       // Create an empty profile that will be populated with env vars
       console.log(
@@ -110,7 +109,7 @@ export async function getServerProfile() {
 
     if (profileError || !profile) {
       console.error(
-        "❌ getServerProfile: Profile error:",
+        "❌ getServerProfile: Profile, error:",
         profileError?.message || "Profile not found"
       )
 
@@ -145,7 +144,7 @@ export async function getServerProfile() {
     const profileWithKeys = addApiKeysToProfile(profile)
     return profileWithKeys
   } catch (error) {
-    console.error("❌ getServerProfile: Unexpected error:", error)
+    console.error("❌ getServerProfile: Unexpected, error:", error)
 
     // Create an empty profile that will be populated with env vars
     console.log(

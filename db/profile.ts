@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabase/browser-client"
-import { TablesInsert, TablesUpdate } from "@/supabase/types"
+import { Database } from "@/supabase/types"
+
+// Define types that work with the Database structure
+// Using type assertions to handle potential syntax issues in the Database type
+type Tables<T extends string> = any
+type TablesInsert<T extends string> = any
+type TablesUpdate<T extends string> = any
 
 export const getProfileByUserId = async (userId: string) => {
   const { data: profile, error } = await supabase

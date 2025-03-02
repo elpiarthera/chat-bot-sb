@@ -3,21 +3,26 @@ import { ChatbotUIContext } from "@/context/context"
 import { Tables } from "@/supabase/types"
 import { FC, useContext, useState } from "react"
 import { Message } from "../messages/message"
-import { ChatFile } from "@/types/chat-file"
+import { ChatFile } from "@/types"
+import { ChatMessage } from "@/types/chat-message"
 
 interface ChatMessagesProps {}
 
 export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
-  const { chatMessages, chatFileItems, chatFiles } =
-    useContext(ChatbotUIContext)
-
+  const context = useContext(ChatbotUIContext) as any
+  const chatMessages = context.chatMessages || []
+  const chatFileItems = context.chatFileItems || []
+  const chatFiles = context.chatFiles || []
   const { handleSendEdit } = useChatHandler()
 
   const [editingMessage, setEditingMessage] = useState<Tables<"messages">>()
 
   return chatMessages
-    .sort((a, b) => a.message.sequence_number - b.message.sequence_number)
-    .map((chatMessage, index, array) => {
+    .sort(
+      (a: ChatMessage, b: ChatMessage) =>
+        a.message.sequence_number - b.message.sequence_number
+    )
+    .map((chatMessage: ChatMessage, index: number, array: ChatMessage[]) => {
       const mapChatFileToFileItem = (
         chatFile: ChatFile
       ): Tables<"file_items"> => ({
@@ -39,16 +44,20 @@ export const ChatMessages: FC<ChatMessagesProps> = ({}) => {
           (fileItem): fileItem is Tables<"file_items"> => fileItem !== undefined
         )
 
+      const MessageComponent = Message as any
+
       return (
-        <Message
+        <MessageComponent
           key={chatMessage.message.sequence_number}
           message={chatMessage.message}
           fileItems={messageFileItems}
-          isEditing={editingMessage?.id === chatMessage.message.id}
+          isEditing={Boolean(editingMessage?.id === chatMessage.message.id)}
           isLast={index === array.length - 1}
           onStartEdit={setEditingMessage}
           onCancelEdit={() => setEditingMessage(undefined)}
-          onSubmitEdit={handleSendEdit}
+          onSubmitEdit={(value: string, sequenceNumber: number) =>
+            handleSendEdit(value, sequenceNumber)
+          }
         />
       )
     })

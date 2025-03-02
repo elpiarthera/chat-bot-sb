@@ -2,7 +2,7 @@
 
 import { supabase } from "@/lib/supabase/browser-client"
 import { useRouter } from "next/navigation"
-import { FC, useState } from "react"
+import { FC, useState, ChangeEvent } from "react"
 import { Button } from "../ui/button"
 import {
   Dialog,
@@ -18,12 +18,15 @@ interface ChangePasswordProps {}
 
 export const ChangePassword: FC<ChangePasswordProps> = () => {
   const router = useRouter()
-
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
 
   const handleResetPassword = async () => {
     if (!newPassword) return toast.info("Please enter your new password.")
+
+    if (newPassword !== confirmPassword) {
+      return toast.error("Passwords do not match.")
+    }
 
     await supabase.auth.updateUser({ password: newPassword })
 
@@ -44,7 +47,9 @@ export const ChangePassword: FC<ChangePasswordProps> = () => {
           placeholder="New Password"
           type="password"
           value={newPassword}
-          onChange={e => setNewPassword(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setNewPassword(e.target.value)
+          }
         />
 
         <Input
@@ -52,7 +57,9 @@ export const ChangePassword: FC<ChangePasswordProps> = () => {
           placeholder="Confirm New Password"
           type="password"
           value={confirmPassword}
-          onChange={e => setConfirmPassword(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setConfirmPassword(e.target.value)
+          }
         />
 
         <DialogFooter>

@@ -24,7 +24,6 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
     }
 
     const data = await response.json()
-
     let modelsToAdd: LLM[] = []
 
     if (
@@ -65,7 +64,6 @@ export const fetchHostedModels = async (profile: Tables<"profiles">) => {
 
       if (profile?.[providerKey] || data.isUsingEnvKeyMap[provider]) {
         const models = LLM_LIST_MAP[provider]
-
         if (Array.isArray(models)) {
           modelsToAdd.push(...models)
         }
@@ -92,7 +90,6 @@ export const fetchOllamaModels = async () => {
     }
 
     const data = await response.json()
-
     const localModels: LLM[] = data.models.map((model: any) => ({
       modelId: model.name as LLMID,
       modelName: model.name,
@@ -111,7 +108,6 @@ export const fetchOllamaModels = async () => {
 export const fetchOpenRouterModels = async () => {
   try {
     const response = await fetch("https://openrouter.ai/api/v1/models")
-
     if (!response.ok) {
       throw new Error(`OpenRouter server is not responding.`)
     }
@@ -165,7 +161,6 @@ export const fetchOpenAIModels = async () => {
 
     const openaiModels: LLM[] = models.map((model: any) => {
       const staticModel = OPENAI_LLM_LIST.find(m => m.modelId === model.id)
-
       return {
         modelId: model.id as LLMID,
         modelName: formatModelName(model.id),

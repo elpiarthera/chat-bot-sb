@@ -48,3 +48,25 @@ workbox-*.js
 workbox-*.js.map
 public/worker-*.js
 public/worker-*.js.map
+
+# Ignore all JavaScript files (scripts)
+*.js
+
+# Exceptions - keep these JavaScript configuration files
+!next.config.js
+!postcss.config.js
+!i18nConfig.js
+!tailwind.config.js
+
+# Admin panel implementation plan files
+/home/node/gasless/chat-bot-sb/@admin-panel-implementation-plan.md
+/home/node/gasless/chat-bot-sb/admin-panel-implementation-plan.md
+admin-panel-implementation-plan.md
+@admin-panel-implementation-plan.md
+
+# Fix summary file
+/home/node/gasless/chat-bot-sb/fix-summary.md
+fix-summary.md
+
+# Documentation folder
+/coding-documentation/

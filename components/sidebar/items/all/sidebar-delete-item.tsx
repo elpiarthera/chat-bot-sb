@@ -20,7 +20,7 @@ import { deleteFileFromStorage } from "@/db/storage/files"
 import { deleteTool } from "@/db/tools"
 import { Tables } from "@/supabase/types"
 import { ContentType, DataItemType } from "@/types"
-import { FC, useContext, useRef, useState } from "react"
+import { FC, ReactNode, useContext, useRef, useState } from "react"
 
 interface SidebarDeleteItemProps {
   item: DataItemType
@@ -30,23 +30,21 @@ interface SidebarDeleteItemProps {
 export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
   item,
   contentType
-}) => {
-  const {
-    setChats,
-    setPresets,
-    setPrompts,
-    setFiles,
-    setCollections,
-    setAssistants,
-    setTools,
-    setModels
-  } = useContext(ChatbotUIContext)
-
+}): ReactNode => {
+  const context = useContext(ChatbotUIContext) as any
+  const setChats = context.setChats
+  const setPresets = context.setPresets
+  const setPrompts = context.setPrompts
+  const setFiles = context.setFiles
+  const setCollections = context.setCollections
+  const setAssistants = context.setAssistants
+  const setTools = context.setTools
+  const setModels = context.setModels
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [showDialog, setShowDialog] = useState(false)
 
-  const deleteFunctions = {
+  const deleteFunctions: Record<ContentType, (item: any) => Promise<void>> = {
     chats: async (chat: Tables<"chats">) => {
       await deleteChat(chat.id)
     },
@@ -65,8 +63,8 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
     },
     assistants: async (assistant: Tables<"assistants">) => {
       await deleteAssistant(assistant.id)
-      setChats(prevState =>
-        prevState.filter(chat => chat.assistant_id !== assistant.id)
+      setChats((prevState: any) =>
+        prevState.filter((chat: any) => chat.assistant_id !== assistant.id)
       )
     },
     tools: async (tool: Tables<"tools">) => {
@@ -77,7 +75,7 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
     }
   }
 
-  const stateUpdateFunctions = {
+  const stateUpdateFunctions: Record<ContentType, any> = {
     chats: setChats,
     presets: setPresets,
     prompts: setPrompts,
@@ -91,7 +89,6 @@ export const SidebarDeleteItem: FC<SidebarDeleteItemProps> = ({
   const handleDelete = async () => {
     const deleteFunction = deleteFunctions[contentType]
     const setStateFunction = stateUpdateFunctions[contentType]
-
     if (!deleteFunction || !setStateFunction) return
 
     await deleteFunction(item as any)

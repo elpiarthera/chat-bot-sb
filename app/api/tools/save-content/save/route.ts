@@ -40,7 +40,6 @@ export async function POST(request: Request) {
     // Initialize Supabase client
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
-
     // Get current user
     const {
       data: { user }
@@ -63,7 +62,6 @@ export async function POST(request: Request) {
 
     // Create timestamp
     const timestamp = new Date().toISOString()
-
     // Prepare document data
     const documentData: Partial<DocumentData> = {
       user_id: user.id,
@@ -89,7 +87,7 @@ export async function POST(request: Request) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Failed to save content: " + error.message
+          error: "Failed to save, content: " + error.message
         }),
         { status: 500 }
       )
@@ -109,7 +107,7 @@ export async function POST(request: Request) {
     return new Response(
       JSON.stringify({
         success: false,
-        error: "An unexpected error occurred: " + error.message
+        error: "An unexpected error, occurred: " + error.message
       }),
       { status: 500 }
     )

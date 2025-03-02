@@ -40,7 +40,6 @@ export const ModelItem: FC<ModelItemProps> = ({ model }) => {
         <>
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Model name..."
               value={name}
@@ -51,7 +50,6 @@ export const ModelItem: FC<ModelItemProps> = ({ model }) => {
 
           <div className="space-y-1">
             <Label>Model ID</Label>
-
             <Input
               placeholder="Model ID..."
               value={modelId}
@@ -61,13 +59,11 @@ export const ModelItem: FC<ModelItemProps> = ({ model }) => {
 
           <div className="space-y-1">
             <Label>Base URL</Label>
-
             <Input
               placeholder="Base URL..."
               value={baseUrl}
               onChange={e => setBaseUrl(e.target.value)}
             />
-
             <div className="pt-1 text-xs italic">
               Your API must be compatible with the OpenAI SDK.
             </div>
@@ -75,7 +71,6 @@ export const ModelItem: FC<ModelItemProps> = ({ model }) => {
 
           <div className="space-y-1">
             <Label>API Key</Label>
-
             <Input
               type="password"
               placeholder="API Key..."
@@ -86,7 +81,6 @@ export const ModelItem: FC<ModelItemProps> = ({ model }) => {
 
           <div className="space-y-1">
             <Label>Max Context Length</Label>
-
             <Input
               type="number"
               placeholder="4096"

@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
 
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
-
     // Get current session to verify ownership
     const {
       data: { session }
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
       }
 
       const userToShare = users?.users?.find(user => user.email === email)
-
       if (!userToShare) {
         return new NextResponse(`No user found with email: ${email}`, {
           status: 404
@@ -81,7 +79,6 @@ export async function POST(request: NextRequest) {
 
       // Use the auth user ID directly
       const userId = userToShare.id
-
       // Check if already shared
       const { data: existingShare } = await customSupabase
         .from("workspace_users")
@@ -133,14 +130,12 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const workspaceId = searchParams.get("workspaceId")
     const userId = searchParams.get("userId")
-
     if (!workspaceId || !userId) {
       return new NextResponse("Missing required parameters", { status: 400 })
     }
 
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
-
     // Get current session to verify ownership
     const {
       data: { session }
@@ -205,7 +200,6 @@ export async function PATCH(request: NextRequest) {
 
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
-
     // Get current session to verify ownership
     const {
       data: { session }

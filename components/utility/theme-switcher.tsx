@@ -11,7 +11,6 @@ export const ThemeSwitcher: FC<ThemeSwitcherProps> = () => {
 
   const handleChange = (theme: "dark" | "light") => {
     localStorage.setItem("theme", theme)
-
     setTheme(theme)
   }
 

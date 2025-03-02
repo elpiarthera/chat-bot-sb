@@ -10,13 +10,21 @@ import { usePromptAndCommand } from "./chat-hooks/use-prompt-and-command"
 interface PromptPickerProps {}
 
 export const PromptPicker: FC<PromptPickerProps> = ({}) => {
+  // Use unknown as an intermediate type to avoid type errors
+  const contextValue = useContext(ChatbotUIContext) as unknown
   const {
     prompts,
     isPromptPickerOpen,
     setIsPromptPickerOpen,
     focusPrompt,
     slashCommand
-  } = useContext(ChatbotUIContext)
+  } = contextValue as {
+    prompts: Tables<"prompts">[]
+    isPromptPickerOpen: boolean
+    setIsPromptPickerOpen: (isOpen: boolean) => void
+    focusPrompt: boolean
+    slashCommand: string
+  }
 
   const { handleSelectPrompt } = usePromptAndCommand()
 
@@ -32,14 +40,14 @@ export const PromptPicker: FC<PromptPickerProps> = ({}) => {
   const [showPromptVariables, setShowPromptVariables] = useState(false)
 
   useEffect(() => {
-    if (focusPrompt && itemsRef.current[0]) {
-      itemsRef.current[0].focus()
+    if (focusPrompt && itemsRef.current.length > 0) {
+      itemsRef.current[0]?.focus()
     }
   }, [focusPrompt])
 
   const [isTyping, setIsTyping] = useState(false)
 
-  const filteredPrompts = prompts.filter(prompt =>
+  const filteredPrompts = prompts.filter((prompt: Tables<"prompts">) =>
     prompt.name.toLowerCase().includes(slashCommand.toLowerCase())
   )
 
@@ -50,7 +58,6 @@ export const PromptPicker: FC<PromptPickerProps> = ({}) => {
   const callSelectPrompt = (prompt: Tables<"prompts">) => {
     const regex = /\{\{.*?\}\}/g
     const matches = prompt.content.match(regex)
-
     if (matches) {
       const newPromptVariables = matches.map(match => ({
         promptId: prompt.id,
@@ -104,14 +111,17 @@ export const PromptPicker: FC<PromptPickerProps> = ({}) => {
           new RegExp(`\\{\\{${variable.name}\\}\\}`, "g"),
           variable.value
         ),
-      prompts.find(prompt => prompt.id === promptVariables[0].promptId)
-        ?.content || ""
+      prompts.find(
+        (prompt: Tables<"prompts">) => prompt.id === promptVariables[0].promptId
+      )?.content || ""
     )
 
-    const newPrompt: any = {
-      ...prompts.find(prompt => prompt.id === promptVariables[0].promptId),
+    const newPrompt: Tables<"prompts"> = {
+      ...prompts.find(
+        (prompt: Tables<"prompts">) => prompt.id === promptVariables[0].promptId
+      )!,
       content: newPromptContent
-    }
+    } as Tables<"prompts">
 
     handleSelectPrompt(newPrompt)
     handleOpenChange(false)
@@ -189,7 +199,7 @@ export const PromptPicker: FC<PromptPickerProps> = ({}) => {
               No matching prompts.
             </div>
           ) : (
-            filteredPrompts.map((prompt, index) => (
+            filteredPrompts.map((prompt: Tables<"prompts">, index: number) => (
               <div
                 key={prompt.id}
                 ref={ref => {

@@ -1,5 +1,5 @@
 // Removed static import in favor of dynamic imports to fix webpack HMD issues
-// import $RefParser from "@apidevtools/json-schema-ref-parser"
+// import $RefParser from "@apidevtools/json-schema-ref-parser";
 
 interface OpenAPIData {
   info: {
@@ -135,7 +135,6 @@ export const openapiToFunctions = async (
 
       const functionName = spec.operationId
       const desc = spec.description || spec.summary || ""
-
       const schema: { type: string; properties: any; required?: string[] } = {
         type: "object",
         properties: {}
@@ -148,16 +147,14 @@ export const openapiToFunctions = async (
 
       const params = spec.parameters || []
       if (params.length > 0) {
-        const paramProperties = params.reduce((acc: any, param: any) => {
+        // Instead of nesting parameters, add them directly to the properties object
+        for (const param of params) {
           if (param.schema) {
-            acc[param.name] = param.schema
+            schema.properties[param.name] = {
+              ...param.schema,
+              required: param.required
+            }
           }
-          return acc
-        }, {})
-
-        schema.properties.parameters = {
-          type: "object",
-          properties: paramProperties
         }
       }
 
@@ -172,7 +169,6 @@ export const openapiToFunctions = async (
 
       // Determine if the request should be in the body based on the presence of requestBody
       const requestInBody = !!spec.requestBody
-
       routes.push({
         path,
         method,

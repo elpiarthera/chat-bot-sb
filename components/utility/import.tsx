@@ -23,7 +23,7 @@ import { Input } from "../ui/input"
 
 interface ImportProps {}
 
-export const Import: FC<ImportProps> = ({}) => {
+export const Import: FC<ImportProps> = () => {
   const {
     profile,
     selectedWorkspace,
@@ -69,9 +69,11 @@ export const Import: FC<ImportProps> = ({}) => {
     tools: setTools
   }
 
-  const handleSelectFiles = async (e: any) => {
+  const handleSelectFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return
+
     const filePromises = Array.from(e.target.files).map(file => {
-      return new Promise((resolve, reject) => {
+      return new Promise<any[]>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = event => {
           try {
@@ -104,7 +106,8 @@ export const Import: FC<ImportProps> = ({}) => {
           "prompts",
           "files",
           "collections",
-          "assistants"
+          "assistants",
+          "tools"
         ]
         const newCounts: any = { ...prevCounts }
         countTypes.forEach(type => {

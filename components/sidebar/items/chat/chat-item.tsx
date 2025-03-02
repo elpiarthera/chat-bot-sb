@@ -27,8 +27,7 @@ export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
 
   const router = useRouter()
   const params = useParams()
-  const isActive = params.chatid === chat.id || selectedChat?.id === chat.id
-
+  const isActive = params?.chatid === chat.id || selectedChat?.id === chat.id
   const itemRef = useRef<HTMLDivElement>(null)
 
   const handleClick = () => {
@@ -93,7 +92,6 @@ export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
       <div className="ml-3 flex-1 truncate text-sm font-semibold">
         {chat.name}
       </div>
-
       <div
         onClick={e => {
           e.stopPropagation()
@@ -102,7 +100,6 @@ export const ChatItem: FC<ChatItemProps> = ({ chat }) => {
         className={`ml-2 flex space-x-2 ${!isActive && "w-11 opacity-0 group-hover:opacity-100"}`}
       >
         <UpdateChat chat={chat} />
-
         <DeleteChat chat={chat} />
       </div>
     </div>

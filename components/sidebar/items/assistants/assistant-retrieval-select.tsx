@@ -16,7 +16,7 @@ import { FileIcon } from "lucide-react"
 import { FC, useContext, useEffect, useRef, useState } from "react"
 
 interface AssistantRetrievalSelectProps {
-  selectedAssistantRetrievalItems: Tables<"files">[] | Tables<"collections">[]
+  selectedAssistantRetrievalItems: (Tables<"files"> | Tables<"collections">)[]
   onAssistantRetrievalItemsSelect: (
     item: Tables<"files"> | Tables<"collections">
   ) => void
@@ -26,11 +26,13 @@ export const AssistantRetrievalSelect: FC<AssistantRetrievalSelectProps> = ({
   selectedAssistantRetrievalItems,
   onAssistantRetrievalItemsSelect
 }) => {
-  const { files, collections } = useContext(ChatbotUIContext)
+  // Use a type assertion with any to avoid type errors
+  const context = useContext(ChatbotUIContext) as any
+  const files = (context?.files as Tables<"files">[]) || []
+  const collections = (context?.collections as Tables<"collections">[]) || []
 
   const inputRef = useRef<HTMLInputElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
-
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
 
@@ -38,7 +40,7 @@ export const AssistantRetrievalSelect: FC<AssistantRetrievalSelectProps> = ({
     if (isOpen) {
       setTimeout(() => {
         inputRef.current?.focus()
-      }, 100) // FIX: hacky
+      }, 100) // Focusing input after dropdown opens
     }
   }, [isOpen])
 
@@ -109,13 +111,13 @@ export const AssistantRetrievalSelect: FC<AssistantRetrievalSelectProps> = ({
 
         {files
           .filter(
-            file =>
+            (file: Tables<"files">) =>
               !selectedAssistantRetrievalItems.some(
                 selectedAssistantRetrieval =>
                   selectedAssistantRetrieval.id === file.id
               ) && file.name.toLowerCase().includes(search.toLowerCase())
           )
-          .map(file => (
+          .map((file: Tables<"files">) => (
             <AssistantRetrievalItemOption
               key={file.id}
               item={file}
@@ -130,13 +132,13 @@ export const AssistantRetrievalSelect: FC<AssistantRetrievalSelectProps> = ({
 
         {collections
           .filter(
-            collection =>
+            (collection: Tables<"collections">) =>
               !selectedAssistantRetrievalItems.some(
                 selectedAssistantRetrieval =>
                   selectedAssistantRetrieval.id === collection.id
               ) && collection.name.toLowerCase().includes(search.toLowerCase())
           )
-          .map(collection => (
+          .map((collection: Tables<"collections">) => (
             <AssistantRetrievalItemOption
               key={collection.id}
               contentType="collections"

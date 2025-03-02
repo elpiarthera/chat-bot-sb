@@ -52,7 +52,6 @@ export const QuickSettingOption: FC<QuickSettingOptionProps> = ({
           />
         )}
       </div>
-
       <div className="ml-4 flex grow flex-col space-y-1">
         <div className="text-md font-bold">{item.name}</div>
 

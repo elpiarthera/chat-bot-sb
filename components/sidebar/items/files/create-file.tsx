@@ -24,7 +24,6 @@ export const CreateFile: FC<CreateFileProps> = ({ isOpen, onOpenChange }) => {
     if (!e.target.files) return
 
     const file = e.target.files[0]
-
     if (!file) return
 
     setSelectedFile(file)
@@ -57,7 +56,6 @@ export const CreateFile: FC<CreateFileProps> = ({ isOpen, onOpenChange }) => {
         <>
           <div className="space-y-1">
             <Label>File</Label>
-
             <Input
               type="file"
               onChange={handleSelectedFile}
@@ -67,7 +65,6 @@ export const CreateFile: FC<CreateFileProps> = ({ isOpen, onOpenChange }) => {
 
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="File name..."
               value={name}
@@ -78,10 +75,9 @@ export const CreateFile: FC<CreateFileProps> = ({ isOpen, onOpenChange }) => {
 
           <div className="space-y-1">
             <Label>Description</Label>
-
             <Input
               placeholder="File description..."
-              value={name}
+              value={description}
               onChange={e => setDescription(e.target.value)}
               maxLength={FILE_DESCRIPTION_MAX}
             />

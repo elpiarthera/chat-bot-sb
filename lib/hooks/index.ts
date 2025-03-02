@@ -1,0 +1,1 @@
+export { useAssistantLabels } from "./useAssistantLabels"

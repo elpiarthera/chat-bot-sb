@@ -9,7 +9,6 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const workspaceId = searchParams.get("workspaceId")
-
     if (!workspaceId) {
       return NextResponse.json(
         { error: "Workspace ID is required" },
@@ -20,7 +19,6 @@ export async function GET(request: NextRequest) {
     // Create a server-side supabase client
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
-
     // Verify authentication
     const {
       data: { session }
@@ -50,7 +48,6 @@ export async function GET(request: NextRequest) {
       .single()
 
     const isOwner = !!workspace
-
     if (!isOwner) {
       // If not owner, check if shared with the user
       const { data: sharedWorkspace } = await customSupabase

@@ -1,0 +1,207 @@
+:root {
+  /* Base colors */
+  --white-card-popover: #ffffff;
+  --black: #000000;
+  --off-white: #f9f9f9;
+  
+  /* Neutral colors */
+  --neutral-50: #f9fafb;
+  --neutral-100-border-light: #f3f4f6;
+  --neutral-125: #ebedf0;
+  --neutral-150: #e5e7eb;
+  --neutral-200-border: #e5e7eb;
+  --neutral-300-border-medium: #d1d5db;
+  --neutral-400-border-strong: #9ca3af;
+  --neutral-500: #6b7280;
+  --neutral-600-border-dark: #4b5563;
+  --neutral-700: #374151;
+  --neutral-800: #1f2937;
+  --neutral-900: #111827;
+  --neutral-950: #030712;
+  
+  /* Text colors */
+  --text-darker: var(--neutral-950);
+  --text-dark: var(--neutral-900);
+  --text-gray: var(--neutral-700);
+  --text-light: var(--neutral-500);
+  --text-800: var(--neutral-800);
+  --text-700: var(--neutral-700);
+  --text-600: var(--neutral-600-border-dark);
+  --text-500: var(--neutral-500);
+  --text-400: var(--neutral-400-border-strong);
+  
+  /* Background colors */
+  --background-input-background: #ffffff;
+  --background-chatbar-sidebar: #ffffff;
+  --background-chat-hover-selected: #f3f4f6;
+  --background-inverted: #1f2937;
+  --background-emphasis: #f3f4f6;
+  --background-strong: #e5e7eb;
+  --background-hover: #f3f4f6;
+  
+  /* Input styles */
+  --input-border: #e5e7eb;
+  --input-background: #ffffff;
+  --input-text: #1f2937;
+  --input-option: #ffffff;
+  --input-option-hover: #f3f4f6;
+  
+  /* Accent colors */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-background: #eff6ff;
+  --accent-background-hovered: #dbeafe;
+  --accent-background-selected: #bfdbfe;
+  
+  /* Functional colors */
+  --error: #ef4444;
+  --success: #10b981;
+  --alert: #f59e0b;
+  --link: #2563eb;
+  --link-hover: #1d4ed8;
+  
+  /* Agent colors */
+  --agent: #6366f1;
+  --lighter-agent: #818cf8;
+  --agent-hovered: #4f46e5;
+  --agent-sidebar: #eff6ff;
+  
+  /* Hover states */
+  --hover-light: #f9fafb;
+  --hover: #f3f4f6;
+  
+  /* Code styling */
+  --code-text: #e5e7eb;
+  --token-comment: #6b7280;
+  --token-punctuation: #e5e7eb;
+  --token-property: #9ca3af;
+  --token-selector: #d1d5db;
+  --token-atrule: #2563eb;
+  --token-function: #10b981;
+  --token-regex: #f59e0b;
+  --token-attr-name: #ef4444;
+  --non-selectable: rgba(229, 231, 235, 0.1);
+  --non-selectable-border: rgba(209, 213, 219, 0.1);
+  
+  /* Scrollbar */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #d1d5db;
+  --scrollbar-thumb-hover: #9ca3af;
+  --scrollbar-dark-thumb: #4b5563;
+  --scrollbar-dark-thumb-hover: #6b7280;
+  
+  /* Calendar */
+  --calendar-bg-selected: #2563eb;
+  --calendar-bg-outside-selected: #eff6ff;
+  --calendar-text-muted: #6b7280;
+  --calendar-text-selected: #ffffff;
+  --calendar-range-start: #2563eb;
+  --calendar-range-middle: #eff6ff;
+  --calendar-range-end: #2563eb;
+  --calendar-text-in-range: #1f2937;
+  --calendar-hover-bg: #f3f4f6;
+  --calendar-hover-text: #1f2937;
+  --calendar-today-bg: #f3f4f6;
+  --calendar-today-text: #1f2937;
+  
+  /* Dark mode calendar */
+  --calendar-bg-selected-dark: #3b82f6;
+  --calendar-bg-outside-selected-dark: #1e3a8a;
+  --calendar-text-muted-dark: #9ca3af;
+  --calendar-text-selected-dark: #ffffff;
+  --calendar-range-start-dark: #3b82f6;
+  --calendar-range-middle-dark: #1e3a8a;
+  --calendar-range-end-dark: #3b82f6;
+  --calendar-text-in-range-dark: #e5e7eb;
+  --calendar-hover-bg-dark: #374151;
+  --calendar-hover-text-dark: #e5e7eb;
+  --calendar-today-bg-dark: #374151;
+  --calendar-today-text-dark: #e5e7eb;
+  
+  /* Tremor light mode */
+  --tremor-brand-faint: #eff6ff;
+  --tremor-brand-muted: #bfdbfe;
+  --tremor-brand-subtle: #60a5fa;
+  --tremor-brand-default: #3b82f6;
+  --tremor-brand-emphasis: #1d4ed8;
+  --tremor-brand-inverted: #ffffff;
+  --tremor-background-muted: #f9fafb;
+  --tremor-background-subtle: #f3f4f6;
+  --tremor-background-default: #ffffff;
+  --tremor-background-emphasis: #374151;
+  --tremor-border-default: #e5e7eb;
+  --tremor-ring-default: #e5e7eb;
+  --tremor-content-subtle: #9ca3af;
+  --tremor-content-default: #374151;
+  --tremor-content-emphasis: #111827;
+  --tremor-content-strong: #000000;
+  --tremor-content-inverted: #ffffff;
+  
+  /* Tremor dark mode */
+  --dark-tremor-brand-faint: #0f172a;
+  --dark-tremor-brand-muted: #1e40af;
+  --dark-tremor-brand-subtle: #3b82f6;
+  --dark-tremor-brand-default: #60a5fa;
+  --dark-tremor-brand-emphasis: #93c5fd;
+  --dark-tremor-brand-inverted: #030712;
+  --dark-tremor-background-muted: #131a2b;
+  --dark-tremor-background-subtle: #1f2937;
+  --dark-tremor-background-default: #111827;
+  --dark-tremor-background-emphasis: #d1d5db;
+  --dark-tremor-border-default: #1f2937;
+  --dark-tremor-ring-default: #1f2937;
+  --dark-tremor-content-subtle: #4b5563;
+  --dark-tremor-content-default: #d1d5db;
+  --dark-tremor-content-emphasis: #f9fafb;
+  --dark-tremor-content-strong: #ffffff;
+  --dark-tremor-content-inverted: #000000;
+  
+  /* Additional variables */
+  --gray-background: var(--neutral-100-border-light);
+  --new-background: #f9fafb;
+  --new-background-light: #ffffff;
+  --warning: 38 92% 50%;
+  --warning-foreground: 38 92% 10%;
+  --text-chatbar-subtle: var(--neutral-500);
+  --light-success: #d1fae5;
+  --undo: #4b5563;
+  --p: var(--neutral-600-border-dark);
+  --highlight-text: var(--neutral-900);
+  --document-color: var(--neutral-900);
+  --foreground: var(--neutral-900);
+  --neutral-10: rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode overrides */
+.dark {
+  --background-input-background: #111827;
+  --background-chatbar-sidebar: #111827;
+  --white-card-popover: #1f2937;
+  --off-white: #374151;
+  --input-border: #4b5563;
+  --input-background: #1f2937;
+  --input-text: #e5e7eb;
+  --input-option: #1f2937;
+  --input-option-hover: #374151;
+  --background-chat-hover-selected: #374151;
+  --background-inverted: #f9fafb;
+  --background-emphasis: #1f2937;
+  --background-strong: #4b5563;
+  --text-800: #f3f4f6;
+  --text-700: #e5e7eb;
+  --text-600: #d1d5db;
+  --text-500: #9ca3af;
+  --text-400: #6b7280;
+  --hover: #374151;
+  --hover-light: #1f2937;
+  
+  /* Additional dark mode variables */
+  --gray-background: var(--neutral-800);
+  --new-background: #111827;
+  --new-background-light: #1f2937;
+  --light-success: #065f46;
+  --undo: #9ca3af;
+  --highlight-text: var(--neutral-50);
+  --document-color: var(--neutral-100-border-light);
+  --foreground: var(--neutral-50);
+} 

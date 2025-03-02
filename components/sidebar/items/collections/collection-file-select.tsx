@@ -20,8 +20,8 @@ export const CollectionFileSelect: FC<CollectionFileSelectProps> = ({
   selectedCollectionFiles,
   onCollectionFileSelect
 }) => {
-  const { files } = useContext(ChatbotUIContext)
-
+  const context = useContext(ChatbotUIContext) as any
+  const files = context.files
   const inputRef = useRef<HTMLInputElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -32,7 +32,7 @@ export const CollectionFileSelect: FC<CollectionFileSelectProps> = ({
     if (isOpen) {
       setTimeout(() => {
         inputRef.current?.focus()
-      }, 100) // FIX: hacky
+      }, 100) // Small delay to ensure the dropdown is fully open
     }
   }, [isOpen])
 
@@ -99,12 +99,12 @@ export const CollectionFileSelect: FC<CollectionFileSelectProps> = ({
 
         {files
           .filter(
-            file =>
+            (file: CollectionFile) =>
               !selectedCollectionFiles.some(
                 selectedCollectionFile => selectedCollectionFile.id === file.id
               ) && file.name.toLowerCase().includes(search.toLowerCase())
           )
-          .map(file => (
+          .map((file: CollectionFile) => (
             <CollectionFileItem
               key={file.id}
               file={file}
@@ -143,7 +143,6 @@ const CollectionFileItem: FC<CollectionFileItemProps> = ({
         <div className="mr-2 min-w-[24px]">
           <FileIcon type={file.type} size={24} />
         </div>
-
         <div className="truncate">{file.name}</div>
       </div>
 

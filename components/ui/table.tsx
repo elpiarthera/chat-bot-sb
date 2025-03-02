@@ -1,5 +1,4 @@
 import * as React from "react"
-
 import { cn } from "@/lib/utils"
 
 const Table = React.forwardRef<
@@ -43,7 +42,7 @@ const TableFooter = React.forwardRef<
   <tfoot
     ref={ref}
     className={cn(
-      "bg-muted/50 border-t font-medium [&>tr]:last:border-b-0",
+      "bg-muted/50 border-t font-medium [&_tr]:last:border-b-0",
       className
     )}
     {...props}

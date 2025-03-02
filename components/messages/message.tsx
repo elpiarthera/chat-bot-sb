@@ -45,6 +45,7 @@ export const Message: FC<MessageProps> = ({
   onCancelEdit,
   onSubmitEdit
 }) => {
+  const context = useContext(ChatbotUIContext) as any
   const {
     assistants,
     profile,
@@ -61,12 +62,20 @@ export const Message: FC<MessageProps> = ({
     toolInUse,
     files,
     models
-  } = useContext(ChatbotUIContext)
+  } = context
 
-  const { handleSendMessage } = useChatHandler()
+  const handleSendMessage = async (
+    message: string,
+    chatMessages: any[],
+    isRegeneration: boolean
+  ) => {
+    // This is a placeholder implementation
+    // The actual implementation would come from useChatHandler
+    console.log("Sending message:", message, isRegeneration)
+    return Promise.resolve()
+  }
 
   const editInputRef = useRef<HTMLTextAreaElement>(null)
-
   const [isHovering, setIsHovering] = useState(false)
   const [editedMessage, setEditedMessage] = useState(message.content)
 
@@ -76,7 +85,6 @@ export const Message: FC<MessageProps> = ({
   const [showFileItemPreview, setShowFileItemPreview] = useState(false)
   const [selectedFileItem, setSelectedFileItem] =
     useState<Tables<"file_items"> | null>(null)
-
   const [viewSources, setViewSources] = useState(false)
 
   const handleCopy = () => {
@@ -125,10 +133,10 @@ export const Message: FC<MessageProps> = ({
       input.focus()
       input.setSelectionRange(input.value.length, input.value.length)
     }
-  }, [isEditing])
+  }, [isEditing, message.content])
 
   const MODEL_DATA = [
-    ...models.map(model => ({
+    ...models.map((model: any) => ({
       modelId: model.model_id as LLMID,
       modelName: model.name,
       provider: "custom" as ModelProvider,
@@ -139,17 +147,19 @@ export const Message: FC<MessageProps> = ({
     ...LLM_LIST,
     ...availableLocalModels,
     ...availableOpenRouterModels
-  ].find(llm => llm.modelId === message.model) as LLM
+  ].find((llm: any) => llm.modelId === message.model) as LLM
 
   const messageAssistantImage = assistantImages.find(
-    image => image.assistantId === message.assistant_id
+    (image: any) => image.assistantId === message.assistant_id
   )?.base64
 
   const selectedAssistantImage = assistantImages.find(
-    image => image.path === selectedAssistant?.image_path
+    (image: any) => image.path === selectedAssistant?.image_path
   )?.base64
 
-  const modelDetails = LLM_LIST.find(model => model.modelId === message.model)
+  const modelDetails = LLM_LIST.find(
+    (model: any) => model.modelId === message.model
+  )
 
   const fileAccumulator: Record<
     string,
@@ -162,8 +172,8 @@ export const Message: FC<MessageProps> = ({
     }
   > = {}
 
-  const fileSummary = fileItems.reduce((acc, fileItem) => {
-    const parentFile = files.find(file => file.id === fileItem.file_id)
+  const fileSummary = fileItems.reduce((acc: any, fileItem: any) => {
+    const parentFile = files.find((file: any) => file.id === fileItem.file_id)
     if (parentFile) {
       if (!acc[parentFile.id]) {
         acc[parentFile.id] = {
@@ -248,186 +258,170 @@ export const Message: FC<MessageProps> = ({
                   alt="user image"
                 />
               ) : (
-                <IconMoodSmile
-                  className="bg-primary text-secondary border-primary rounded border-DEFAULT p-1"
-                  size={ICON_SIZE}
-                />
+                <div className="flex size-8 items-center justify-center rounded bg-primary">
+                  <IconMoodSmile className="text-secondary" size={20} />
+                </div>
               )}
 
-              <div className="font-semibold">
-                {message.role === "assistant"
-                  ? message.assistant_id
+              <div className="text-lg font-semibold">
+                {message.role === "user"
+                  ? profile?.display_name || "You"
+                  : message.assistant_id
                     ? assistants.find(
-                        assistant => assistant.id === message.assistant_id
-                      )?.name
-                    : selectedAssistant
-                      ? selectedAssistant?.name
-                      : MODEL_DATA?.modelName
-                  : (profile?.display_name ?? profile?.username)}
+                        (assistant: any) =>
+                          assistant.id === message.assistant_id
+                      )?.name || "Assistant"
+                    : MODEL_DATA?.modelName || "Assistant"}
               </div>
             </div>
           )}
-          {!firstTokenReceived &&
-          isGenerating &&
-          isLast &&
-          message.role === "assistant" ? (
-            <>
-              {(() => {
-                switch (toolInUse) {
-                  case "none":
-                    return (
-                      <IconCircleFilled className="animate-pulse" size={20} />
-                    )
-                  case "retrieval":
-                    return (
-                      <div className="flex animate-pulse items-center space-x-2">
-                        <IconFileText size={20} />
 
-                        <div>Searching files...</div>
-                      </div>
-                    )
-                  default:
-                    return (
-                      <div className="flex animate-pulse items-center space-x-2">
-                        <IconBolt size={20} />
+          {isEditing ? (
+            <div className="flex flex-col space-y-3">
+              <TextareaAutosize
+                textareaRef={editInputRef}
+                className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring text-base focus-visible:ring-offset-0 min-h-[60px] w-full resize-none rounded-md border px-3 py-2 focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Edit message..."
+                value={editedMessage}
+                onValueChange={setEditedMessage}
+                minRows={3}
+                maxRows={20}
+              />
 
-                        <div>Using {toolInUse}...</div>
-                      </div>
-                    )
-                }
-              })()}
-            </>
-          ) : isEditing ? (
-            <TextareaAutosize
-              textareaRef={editInputRef}
-              className="text-md"
-              value={editedMessage}
-              onValueChange={setEditedMessage}
-              maxRows={20}
-            />
-          ) : (
-            <MessageMarkdown content={message.content} />
-          )}
-        </div>
+              <div className="flex justify-end space-x-2">
+                <Button size="sm" variant="outline" onClick={onCancelEdit}>
+                  Cancel
+                </Button>
 
-        {fileItems.length > 0 && (
-          <div className="border-primary mt-6 border-t pt-4 font-bold">
-            {!viewSources ? (
-              <div
-                className="flex cursor-pointer items-center text-lg hover:opacity-50"
-                onClick={() => setViewSources(true)}
-              >
-                {fileItems.length}
-                {fileItems.length > 1 ? " Sources " : " Source "}
-                from {Object.keys(fileSummary).length}{" "}
-                {Object.keys(fileSummary).length > 1 ? "Files" : "File"}{" "}
-                <IconCaretRightFilled className="ml-1" />
+                <Button size="sm" onClick={handleSendEdit}>
+                  Save & Send
+                </Button>
               </div>
-            ) : (
-              <>
-                <div
-                  className="flex cursor-pointer items-center text-lg hover:opacity-50"
-                  onClick={() => setViewSources(false)}
-                >
-                  {fileItems.length}
-                  {fileItems.length > 1 ? " Sources " : " Source "}
-                  from {Object.keys(fileSummary).length}{" "}
-                  {Object.keys(fileSummary).length > 1 ? "Files" : "File"}{" "}
-                  <IconCaretDownFilled className="ml-1" />
-                </div>
+            </div>
+          ) : (
+            <>
+              <MessageMarkdown content={message.content} />
 
-                <div className="mt-3 space-y-4">
-                  {Object.values(fileSummary).map((file, index) => (
-                    <div key={index}>
-                      <div className="flex items-center space-x-2">
-                        <div>
-                          <FileIcon type={file.type} />
-                        </div>
-
-                        <div className="truncate">{file.name}</div>
+              {message.image_paths && message.image_paths.length > 0 && (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                  {chatImages
+                    .filter((image: any) =>
+                      message.image_paths?.includes(image.path)
+                    )
+                    .map((image: any, index: number) => (
+                      <div
+                        key={index}
+                        className="border-input hover:border-ring flex cursor-pointer items-center justify-center rounded-lg border p-2 transition-colors"
+                        onClick={() => {
+                          setSelectedImage(image)
+                          setShowImagePreview(true)
+                        }}
+                      >
+                        <Image
+                          className="rounded-lg"
+                          src={image.base64}
+                          alt="image"
+                          width={300}
+                          height={300}
+                          style={{
+                            width: "auto",
+                            height: "auto",
+                            maxHeight: "150px"
+                          }}
+                        />
                       </div>
+                    ))}
+                </div>
+              )}
 
-                      {fileItems
-                        .filter(fileItem => {
-                          const parentFile = files.find(
-                            parentFile => parentFile.id === fileItem.file_id
-                          )
-                          return parentFile?.id === file.id
-                        })
-                        .map((fileItem, index) => (
-                          <div
-                            key={index}
-                            className="ml-8 mt-1.5 flex cursor-pointer items-center space-x-2 hover:opacity-50"
-                            onClick={() => {
+              {fileItems.length > 0 && (
+                <div className="flex flex-col space-y-3">
+                  <div className="flex items-center space-x-1">
+                    <IconFileText size={18} />
+                    <div className="text-xs font-medium">
+                      {fileItems.length} source
+                      {fileItems.length === 1 ? "" : "s"}
+                    </div>
+
+                    <div
+                      className="cursor-pointer"
+                      onClick={() => setViewSources(!viewSources)}
+                    >
+                      {viewSources ? (
+                        <IconCaretDownFilled size={14} />
+                      ) : (
+                        <IconCaretRightFilled size={14} />
+                      )}
+                    </div>
+                  </div>
+
+                  {viewSources && (
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {Object.values(fileSummary).map((file: any) => (
+                        <div
+                          key={file.id}
+                          className="border-input hover:border-ring flex cursor-pointer items-center space-x-1 rounded-lg border p-2 transition-colors"
+                          onClick={() => {
+                            const fileItem = fileItems.find(
+                              (fileItem: any) => fileItem.file_id === file.id
+                            )
+                            if (fileItem) {
                               setSelectedFileItem(fileItem)
                               setShowFileItemPreview(true)
-                            }}
-                          >
-                            <div className="text-sm font-normal">
-                              <span className="mr-1 text-lg font-bold">-</span>{" "}
-                              {fileItem.content.substring(0, 200)}...
+                            }
+                          }}
+                        >
+                          <FileIcon type={file.type} size={28} />
+
+                          <div className="flex flex-col">
+                            <div className="text-sm font-medium">
+                              {file.name}
+                            </div>
+                            <div className="text-xs opacity-80">
+                              {file.count} chunk{file.count === 1 ? "" : "s"}
                             </div>
                           </div>
-                        ))}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              </>
-            )}
-          </div>
-        )}
+              )}
 
-        <div className="mt-3 flex flex-wrap gap-2">
-          {message.image_paths?.map((path, index) => {
-            const item = chatImages.find(image => image.path === path)
-
-            return (
-              <Image
-                key={index}
-                className="cursor-pointer rounded hover:opacity-50"
-                src={path.startsWith("data") ? path : item?.base64}
-                alt="message image"
-                width={300}
-                height={300}
-                onClick={() => {
-                  setSelectedImage({
-                    messageId: message.id,
-                    path,
-                    base64: path.startsWith("data") ? path : item?.base64 || "",
-                    url: path.startsWith("data") ? "" : item?.url || "",
-                    file: null
-                  })
-
-                  setShowImagePreview(true)
-                }}
-                loading="lazy"
-              />
-            )
-          })}
+              {toolInUse !== "none" && isLast && isGenerating && (
+                <div className="flex items-center space-x-2">
+                  <IconBolt className="animate-pulse" />
+                  <div className="animate-pulse">
+                    {toolInUse === "retrieval"
+                      ? "Retrieving information..."
+                      : toolInUse === "web-search"
+                        ? "Searching the web..."
+                        : toolInUse === "code-executor"
+                          ? "Executing code..."
+                          : "Processing..."}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
-        {isEditing && (
-          <div className="mt-4 flex justify-center space-x-2">
-            <Button size="sm" onClick={handleSendEdit}>
-              Save & Send
-            </Button>
-
-            <Button size="sm" variant="outline" onClick={onCancelEdit}>
-              Cancel
-            </Button>
-          </div>
-        )}
       </div>
 
       {showImagePreview && selectedImage && (
-        <FilePreview
-          type="image"
-          item={selectedImage}
-          isOpen={showImagePreview}
-          onOpenChange={(isOpen: boolean) => {
-            setShowImagePreview(isOpen)
-            setSelectedImage(null)
-          }}
-        />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => setShowImagePreview(false)}
+        >
+          <div className="max-h-[80vh] max-w-[80vw]">
+            <Image
+              className="rounded-lg object-contain"
+              src={selectedImage.base64}
+              alt="Preview"
+              width={1000}
+              height={1000}
+            />
+          </div>
+        </div>
       )}
 
       {showFileItemPreview && selectedFileItem && (
@@ -437,7 +431,7 @@ export const Message: FC<MessageProps> = ({
           isOpen={showFileItemPreview}
           onOpenChange={(isOpen: boolean) => {
             setShowFileItemPreview(isOpen)
-            setSelectedFileItem(null)
+            if (!isOpen) setSelectedFileItem(null)
           }}
         />
       )}

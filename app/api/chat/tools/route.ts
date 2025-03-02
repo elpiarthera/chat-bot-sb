@@ -26,7 +26,6 @@ export async function POST(request: Request) {
     let allTools: OpenAI.Chat.Completions.ChatCompletionTool[] = []
     let allRouteMaps = {}
     let schemaDetails = []
-
     for (const selectedTool of selectedTools) {
       try {
         const convertedSchema = await openapiToFunctions(
@@ -67,7 +66,6 @@ export async function POST(request: Request) {
     const message = firstResponse.choices[0].message
     messages.push(message)
     const toolCalls = message.tool_calls || []
-
     if (toolCalls.length === 0) {
       return new Response(message.content, {
         headers: {
@@ -82,7 +80,6 @@ export async function POST(request: Request) {
         const functionName = functionCall.name
         const argumentsString = toolCall.function.arguments.trim()
         const parsedArgs = JSON.parse(argumentsString)
-
         // Find the schema detail that contains the function name
         const schemaDetail = schemaDetails.find(detail =>
           Object.values(detail.routeMap).includes(functionName)
@@ -140,9 +137,7 @@ export async function POST(request: Request) {
           }
 
           const fullUrl = schemaDetail.url + path
-
           const bodyContent = parsedArgs.requestBody || parsedArgs
-
           const requestInit = {
             method: "POST",
             headers,
@@ -150,7 +145,6 @@ export async function POST(request: Request) {
           }
 
           const response = await fetch(fullUrl, requestInit)
-
           if (!response.ok) {
             data = {
               error: response.statusText

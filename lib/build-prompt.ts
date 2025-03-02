@@ -10,7 +10,6 @@ const buildBasePrompt = (
   assistant: Tables<"assistants"> | null
 ) => {
   let fullPrompt = ""
-
   if (assistant) {
     fullPrompt += `<INJECT ROLE>\nYou are not an AI. You are ${assistant.name}.\n</INJECT ROLE>\n\n`
   }
@@ -53,21 +52,17 @@ export async function buildFinalMessages(
 
   const CHUNK_SIZE = chatSettings.contextLength
   const PROMPT_TOKENS = encode(chatSettings.prompt).length
-
   let remainingTokens = CHUNK_SIZE - PROMPT_TOKENS
-
   let usedTokens = 0
   usedTokens += PROMPT_TOKENS
 
   const processedChatMessages = chatMessages.map((chatMessage, index) => {
     const nextChatMessage = chatMessages[index + 1]
-
     if (nextChatMessage === undefined) {
       return chatMessage
     }
 
     const nextChatMessageFileItems = nextChatMessage.fileItems
-
     if (nextChatMessageFileItems.length > 0) {
       const findFileItems = nextChatMessageFileItems
         .map(fileItemId =>
@@ -80,7 +75,6 @@ export async function buildFinalMessages(
         .filter(item => item !== undefined) as Tables<"file_items">[]
 
       const retrievalText = buildRetrievalText(findFileItems)
-
       return {
         message: {
           ...chatMessage.message,
@@ -95,11 +89,9 @@ export async function buildFinalMessages(
   })
 
   let finalMessages = []
-
   for (let i = processedChatMessages.length - 1; i >= 0; i--) {
     const message = processedChatMessages[i].message
     const messageTokens = encode(message.content).length
-
     if (messageTokens <= remainingTokens) {
       remainingTokens -= messageTokens
       usedTokens += messageTokens
@@ -134,14 +126,13 @@ export async function buildFinalMessages(
           type: "text",
           text: message.content
         },
-        ...message.image_paths.map(path => {
+        ...message.image_paths.map((path: string) => {
           let formedUrl = ""
 
           if (path.startsWith("data")) {
             formedUrl = path
           } else {
             const chatImage = chatImages.find(image => image.path === path)
-
             if (chatImage) {
               formedUrl = chatImage.base64
             }
@@ -167,7 +158,6 @@ export async function buildFinalMessages(
 
   if (messageFileItems.length > 0) {
     const retrievalText = buildRetrievalText(messageFileItems)
-
     finalMessages[finalMessages.length - 1] = {
       ...finalMessages[finalMessages.length - 1],
       content: `${
@@ -189,7 +179,6 @@ function buildRetrievalText(fileItems: Tables<"file_items">[]) {
 
 function adaptSingleMessageForGoogleGemini(message: any) {
   let adaptedParts = []
-
   let rawParts = []
   if (!Array.isArray(message.content)) {
     rawParts.push({ type: "text", text: message.content })
@@ -199,7 +188,6 @@ function adaptSingleMessageForGoogleGemini(message: any) {
 
   for (let i = 0; i < rawParts.length; i++) {
     let rawPart = rawParts[i]
-
     if (rawPart.type == "text") {
       adaptedParts.push({ text: rawPart.text })
     } else if (rawPart.type === "image_url") {

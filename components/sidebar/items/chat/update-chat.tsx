@@ -49,15 +49,12 @@ export const UpdateChat: FC<UpdateChatProps> = ({ chat }) => {
       <DialogTrigger asChild>
         <IconEdit className="hover:opacity-50" size={18} />
       </DialogTrigger>
-
       <DialogContent onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle>Edit Chat</DialogTitle>
         </DialogHeader>
-
         <div className="space-y-1">
           <Label>Name</Label>
-
           <Input value={name} onChange={e => setName(e.target.value)} />
         </div>
 

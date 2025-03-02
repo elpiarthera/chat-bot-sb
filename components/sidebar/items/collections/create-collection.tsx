@@ -65,7 +65,6 @@ export const CreateCollection: FC<CreateCollectionProps> = ({
         <>
           <div className="space-y-1">
             <Label>Files</Label>
-
             <CollectionFileSelect
               selectedCollectionFiles={selectedCollectionFiles}
               onCollectionFileSelect={handleFileSelect}
@@ -74,7 +73,6 @@ export const CreateCollection: FC<CreateCollectionProps> = ({
 
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Collection name..."
               value={name}
@@ -85,7 +83,6 @@ export const CreateCollection: FC<CreateCollectionProps> = ({
 
           <div className="space-y-1">
             <Label>Description</Label>
-
             <Input
               placeholder="Collection description..."
               value={description}

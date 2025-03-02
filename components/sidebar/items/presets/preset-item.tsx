@@ -54,7 +54,6 @@ export const PresetItem: FC<PresetItemProps> = ({ preset }) => {
         <>
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Preset name..."
               value={name}

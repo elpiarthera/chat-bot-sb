@@ -41,7 +41,6 @@ export const CreatePrompt: FC<CreatePromptProps> = ({
         <>
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Prompt name..."
               value={name}
@@ -54,7 +53,6 @@ export const CreatePrompt: FC<CreatePromptProps> = ({
 
           <div className="space-y-1">
             <Label>Prompt</Label>
-
             <TextareaAutosize
               placeholder="Prompt content..."
               value={content}

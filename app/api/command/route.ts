@@ -1,7 +1,6 @@
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import OpenAI from "openai"
-
 export const runtime = "edge"
 
 export async function POST(request: Request) {
@@ -40,7 +39,6 @@ export async function POST(request: Request) {
     })
 
     const content = response.choices[0].message.content
-
     return new Response(JSON.stringify({ content }), {
       status: 200
     })

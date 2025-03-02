@@ -23,7 +23,8 @@ export const AssistantToolSelect: FC<AssistantToolSelectProps> = ({
   selectedAssistantTools,
   onAssistantToolsSelect
 }) => {
-  const { tools } = useContext(ChatbotUIContext)
+  const context = useContext(ChatbotUIContext) as any
+  const tools = (context?.tools as Tables<"tools">[]) || []
 
   const inputRef = useRef<HTMLInputElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -35,7 +36,7 @@ export const AssistantToolSelect: FC<AssistantToolSelectProps> = ({
     if (isOpen) {
       setTimeout(() => {
         inputRef.current?.focus()
-      }, 100) // FIX: hacky
+      }, 100) // Focusing input after dropdown opens
     }
   }, [isOpen])
 
@@ -149,7 +150,6 @@ const AssistantToolItem: FC<AssistantToolItemProps> = ({
         <div className="mr-2 min-w-[24px]">
           <IconBolt size={24} />
         </div>
-
         <div className="truncate">{tool.name}</div>
       </div>
 

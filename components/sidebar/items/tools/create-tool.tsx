@@ -45,7 +45,6 @@ export const CreateTool: FC<CreateToolProps> = ({ isOpen, onOpenChange }) => {
         <>
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Tool name..."
               value={name}
@@ -56,7 +55,6 @@ export const CreateTool: FC<CreateToolProps> = ({ isOpen, onOpenChange }) => {
 
           <div className="space-y-1">
             <Label>Description</Label>
-
             <Input
               placeholder="Tool description..."
               value={description}
@@ -67,7 +65,6 @@ export const CreateTool: FC<CreateToolProps> = ({ isOpen, onOpenChange }) => {
 
           {/* <div className="space-y-1">
             <Label>URL</Label>
-
             <Input
               placeholder="Tool url..."
               value={url}
@@ -78,26 +75,22 @@ export const CreateTool: FC<CreateToolProps> = ({ isOpen, onOpenChange }) => {
           {/* <div className="space-y-3 pt-4 pb-3">
             <div className="space-x-2 flex items-center">
               <Checkbox />
-
               <Label>Web Browsing</Label>
             </div>
 
             <div className="space-x-2 flex items-center">
               <Checkbox />
-
               <Label>Image Generation</Label>
             </div>
 
             <div className="space-x-2 flex items-center">
               <Checkbox />
-
               <Label>Code Interpreter</Label>
             </div>
           </div> */}
 
           <div className="space-y-1">
             <Label>Custom Headers</Label>
-
             <TextareaAutosize
               placeholder={`{"X-api-key": "1234567890"}`}
               value={customHeaders}
@@ -108,7 +101,6 @@ export const CreateTool: FC<CreateToolProps> = ({ isOpen, onOpenChange }) => {
 
           <div className="space-y-1">
             <Label>Schema</Label>
-
             <TextareaAutosize
               placeholder={`{
                 "openapi": "3.1.0",
@@ -117,8 +109,7 @@ export const CreateTool: FC<CreateToolProps> = ({ isOpen, onOpenChange }) => {
                   "description": "Retrieves current weather data for a location.",
                   "version": "v1.0.0"
                 },
-                "servers": [
-                  {
+                "servers": [{
                     "url": "https://weather.example.com"
                   }
                 ],
@@ -161,7 +152,6 @@ export const CreateTool: FC<CreateToolProps> = ({ isOpen, onOpenChange }) => {
               }}
               minRows={15}
             />
-
             <div className="text-xs text-red-500">{schemaError}</div>
           </div>
         </>

@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/sonner"
 import { GlobalState } from "@/components/utility/global-state"
 import { Providers } from "@/components/utility/providers"
-import TranslationsProvider from "@/components/utility/translations-provider"
+import { I18nextProvider } from "react-i18next"
+import { createInstance } from "i18next"
 import initTranslations from "@/lib/i18n"
 import { Database } from "@/supabase/types"
 import { createServerClient } from "@supabase/ssr"
@@ -9,15 +10,10 @@ import { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { cookies } from "next/headers"
 import { ReactNode } from "react"
-import "./globals.css"
+import "../globals.css"
 import Script from "next/script"
 import dynamic from "next/dynamic"
-
-// Create a client wrapper for the ErrorBoundary
-const ClientErrorBoundary = dynamic(
-  () => import("@/components/utility/client-error-boundary"),
-  { ssr: false }
-)
+import { ClientProviders } from "@/components/utility/client-providers"
 
 // Add a simple client-side only debug component
 const DebugInitializer = dynamic(
@@ -167,20 +163,13 @@ export default async function RootLayout({
       </head>
       <body className={inter.className}>
         <DebugInitializer />
-        <ClientErrorBoundary>
-          <Providers attribute="class" defaultTheme="dark">
-            <TranslationsProvider
-              namespaces={i18nNamespaces}
-              locale={locale}
-              resources={resources}
-            >
-              <Toaster richColors position="top-center" duration={3000} />
-              <div className="bg-background text-foreground flex h-dvh flex-col items-center overflow-x-auto">
-                {session ? <GlobalState>{children}</GlobalState> : children}
-              </div>
-            </TranslationsProvider>
-          </Providers>
-        </ClientErrorBoundary>
+        <ClientProviders
+          locale={locale}
+          resources={resources}
+          namespaces={i18nNamespaces}
+        >
+          {session ? <GlobalState>{children}</GlobalState> : children}
+        </ClientProviders>
       </body>
     </html>
   )

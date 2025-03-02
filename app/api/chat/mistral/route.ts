@@ -1,7 +1,6 @@
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import MistralClient from "@mistralai/mistralai"
-
 export const runtime = "edge"
 
 export async function POST(request: Request) {
@@ -17,7 +16,6 @@ export async function POST(request: Request) {
     checkApiKey(profile.mistral_api_key, "Mistral")
 
     const mistral = new MistralClient(profile.mistral_api_key || "")
-
     const response = await mistral.chat({
       model: chatSettings.model,
       messages: messages,

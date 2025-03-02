@@ -49,7 +49,6 @@ export const UpdateFolder: FC<UpdateFolderProps> = ({ folder }) => {
       <DialogTrigger asChild>
         <IconEdit className="hover:opacity-50" size={18} />
       </DialogTrigger>
-
       <DialogContent onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle>Edit Folder</DialogTitle>
@@ -57,7 +56,6 @@ export const UpdateFolder: FC<UpdateFolderProps> = ({ folder }) => {
 
         <div className="space-y-1">
           <Label>Name</Label>
-
           <Input value={name} onChange={e => setName(e.target.value)} />
         </div>
 

@@ -1,4 +1,3 @@
-import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,6 +13,7 @@ import { deleteChat } from "@/db/chats"
 import useHotkey from "@/lib/hooks/use-hotkey"
 import { Tables } from "@/supabase/types"
 import { IconTrash } from "@tabler/icons-react"
+import { useRouter } from "next/navigation"
 import { FC, useContext, useRef, useState } from "react"
 
 interface DeleteChatProps {
@@ -23,8 +23,8 @@ interface DeleteChatProps {
 export const DeleteChat: FC<DeleteChatProps> = ({ chat }) => {
   useHotkey("Backspace", () => setShowChatDialog(true))
 
-  const { setChats } = useContext(ChatbotUIContext)
-  const { handleNewChat } = useChatHandler()
+  const { setChats, selectedWorkspace } = useContext(ChatbotUIContext)
+  const router = useRouter()
 
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -37,7 +37,10 @@ export const DeleteChat: FC<DeleteChatProps> = ({ chat }) => {
 
     setShowChatDialog(false)
 
-    handleNewChat()
+    // Navigate to workspace root instead of creating a new chat
+    if (selectedWorkspace) {
+      router.push(`/${selectedWorkspace.id}`)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -51,11 +54,9 @@ export const DeleteChat: FC<DeleteChatProps> = ({ chat }) => {
       <DialogTrigger asChild>
         <IconTrash className="hover:opacity-50" size={18} />
       </DialogTrigger>
-
       <DialogContent onKeyDown={handleKeyDown}>
         <DialogHeader>
           <DialogTitle>Delete {chat.name}</DialogTitle>
-
           <DialogDescription>
             Are you sure you want to delete this chat?
           </DialogDescription>

@@ -7,8 +7,11 @@ interface DrawingCanvasProps {
 }
 
 export const DrawingCanvas: FC<DrawingCanvasProps> = ({ imageItem }) => {
-  const { setNewMessageImages } = useContext(ChatbotUIContext)
-
+  // Using type assertion to 'any' because the ChatbotUIContext type definition
+  // in the TypeScript compiler doesn't match the actual runtime context.
+  // The setNewMessageImages property exists at runtime but TypeScript doesn't recognize it.
+  const context = useContext(ChatbotUIContext) as any
+  const setNewMessageImages = context.setNewMessageImages
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [isDrawing, setIsDrawing] = useState(false)
 
@@ -18,13 +21,10 @@ export const DrawingCanvas: FC<DrawingCanvasProps> = ({ imageItem }) => {
     if (canvas && parentElement) {
       const context = canvas.getContext("2d")
       const image = new Image()
-
       image.onload = () => {
         const aspectRatio = image.width / image.height
-
         let newWidth = parentElement.clientWidth
         let newHeight = newWidth / aspectRatio
-
         if (newHeight > parentElement.clientHeight) {
           newHeight = parentElement.clientHeight
           newWidth = newHeight * aspectRatio
@@ -38,7 +38,7 @@ export const DrawingCanvas: FC<DrawingCanvasProps> = ({ imageItem }) => {
 
       image.src = imageItem.url
     }
-  }, [imageItem.url])
+  }, [imageItem.url]) // Only depend on the image URL
 
   const startDrawing = ({ nativeEvent }: MouseEvent) => {
     const { offsetX, offsetY } = nativeEvent
@@ -77,8 +77,9 @@ export const DrawingCanvas: FC<DrawingCanvasProps> = ({ imageItem }) => {
             type: "image/png"
           })
 
-          setNewMessageImages(prevImages => {
-            return prevImages.map(img => {
+          // Type-safe callback for updating message images
+          setNewMessageImages((prevImages: MessageImage[]) => {
+            return prevImages.map((img: MessageImage) => {
               if (img.url === imageItem.url) {
                 return { ...img, base64: dataURL, file: newImageFile }
               }

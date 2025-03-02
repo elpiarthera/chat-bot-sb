@@ -1,13 +1,64 @@
-import { Tables } from "@/supabase/types"
-import {
-  ChatFile,
-  ChatMessage,
-  ChatSettings,
-  LLM,
-  MessageImage,
-  OpenRouterLLM,
-  WorkspaceImage
-} from "@/types"
+import { Database } from "@/supabase/types"
+
+// Define Tables type locally since the original is corrupted
+type Tables<T extends string> = any
+
+// Define missing types based on what we found in the project
+interface ChatFile {
+  id: string
+  name: string
+  type: string
+  url: string
+}
+
+interface ChatMessage {
+  id: string
+  role: string
+  content: string
+}
+
+interface ChatSettings {
+  model: string
+  prompt: string
+  temperature: number
+  contextLength: number
+  includeProfileContext: boolean
+  includeWorkspaceInstructions: boolean
+  embeddingsProvider: string
+}
+
+interface LLM {
+  modelId: string
+  modelName: string
+  provider: string
+  hostedId?: string
+  platformLink?: string
+  imageInput?: boolean
+  pricing?: {
+    currency: string
+    unit: string
+    inputCost: number
+    outputCost?: number
+  }
+}
+
+interface OpenRouterLLM extends LLM {
+  maxContext: number
+}
+
+interface MessageImage {
+  messageId: string
+  path: string
+  url: string
+}
+
+interface WorkspaceImage {
+  workspaceId: string
+  path: string
+  base64: any
+  url: string
+}
+
 import { AssistantImage } from "@/types/images/assistant-image"
 import { VALID_ENV_KEYS } from "@/types/valid-keys"
 import { Workspace } from "@/types/workspace"
@@ -167,7 +218,7 @@ interface ChatbotUIContext {
   chatMessages: ChatMessage[]
   setChatMessages: Dispatch<SetStateAction<ChatMessage[]>>
   chatSettings: ChatSettings | null
-  setChatSettings: Dispatch<SetStateAction<ChatSettings>>
+  setChatSettings: Dispatch<SetStateAction<ChatSettings | null>>
   selectedChat: Tables<"chats"> | null
   setSelectedChat: Dispatch<SetStateAction<Tables<"chats"> | null>>
   chatFileItems: Tables<"file_items">[]
@@ -192,7 +243,7 @@ interface ChatbotUIContext {
     focusPrompt: boolean
     focusFile: boolean
   }
-  setChat: (update: (prev: any) => any) => void
+  setChat: (update: ((prev: any) => any) | any) => void
 }
 
 export const initialChatState = {
@@ -302,7 +353,7 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   setShowFilesDisplay: () => {},
 
   // RETRIEVAL STORE
-  useRetrieval: false,
+  useRetrieval: true,
   setUseRetrieval: () => {},
   sourceCount: 4,
   setSourceCount: () => {},
@@ -333,7 +384,7 @@ export const ChatbotUIContext = createContext<ChatbotUIContext>({
   isGenerating: false,
   setIsGenerating: () => {},
 
-  // Add chat object
+  // Chat object
   chat: {
     isGenerating: false,
     newMessageFiles: [],

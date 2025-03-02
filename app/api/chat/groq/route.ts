@@ -3,8 +3,8 @@ import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatSettings, ChatAPIPayload } from "@/types"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
-
 export const runtime = "edge"
+
 export async function POST(request: Request) {
   const json = await request.json()
   const { chatSettings, messages } = json as {

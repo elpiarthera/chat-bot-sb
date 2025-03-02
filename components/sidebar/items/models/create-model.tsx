@@ -46,7 +46,6 @@ export const CreateModel: FC<CreateModelProps> = ({ isOpen, onOpenChange }) => {
         <>
           <div className="space-y-1.5 text-sm">
             <div>Create a custom model.</div>
-
             <div>
               Your API <span className="font-bold">*must*</span> be compatible
               with the OpenAI SDK.
@@ -55,7 +54,6 @@ export const CreateModel: FC<CreateModelProps> = ({ isOpen, onOpenChange }) => {
 
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Model name..."
               value={name}
@@ -66,7 +64,6 @@ export const CreateModel: FC<CreateModelProps> = ({ isOpen, onOpenChange }) => {
 
           <div className="space-y-1">
             <Label>Model ID</Label>
-
             <Input
               placeholder="Model ID..."
               value={modelId}
@@ -76,13 +73,11 @@ export const CreateModel: FC<CreateModelProps> = ({ isOpen, onOpenChange }) => {
 
           <div className="space-y-1">
             <Label>Base URL</Label>
-
             <Input
               placeholder="Base URL..."
               value={baseUrl}
               onChange={e => setBaseUrl(e.target.value)}
             />
-
             <div className="pt-1 text-xs italic">
               Your API must be compatible with the OpenAI SDK.
             </div>
@@ -90,7 +85,6 @@ export const CreateModel: FC<CreateModelProps> = ({ isOpen, onOpenChange }) => {
 
           <div className="space-y-1">
             <Label>API Key</Label>
-
             <Input
               type="password"
               placeholder="API Key..."
@@ -101,7 +95,6 @@ export const CreateModel: FC<CreateModelProps> = ({ isOpen, onOpenChange }) => {
 
           <div className="space-y-1">
             <Label>Max Context Length</Label>
-
             <Input
               type="number"
               placeholder="4096"

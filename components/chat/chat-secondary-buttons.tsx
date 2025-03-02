@@ -6,7 +6,7 @@ import { WithTooltip } from "../ui/with-tooltip"
 
 interface ChatSecondaryButtonsProps {}
 
-export const ChatSecondaryButtons: FC<ChatSecondaryButtonsProps> = ({}) => {
+export const ChatSecondaryButtons: FC<ChatSecondaryButtonsProps> = () => {
   const { selectedChat } = useContext(ChatbotUIContext)
   const { handleNewChat } = useChatHandler()
 
@@ -34,7 +34,6 @@ export const ChatSecondaryButtons: FC<ChatSecondaryButtonsProps> = ({}) => {
                       : "Disabled"}
                   </div>
                   <div>
-                    {" "}
                     Workspace Instructions:{" "}
                     {selectedChat.include_workspace_instructions
                       ? "Enabled"

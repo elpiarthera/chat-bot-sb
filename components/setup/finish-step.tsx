@@ -11,7 +11,6 @@ export const FinishStep: FC<FinishStepProps> = ({ displayName }) => {
         Welcome to My AI team
         {displayName.length > 0 ? `, ${displayName.split(" ")[0]}` : null}!
       </div>
-
       <div>Click next to start chatting.</div>
     </div>
   )

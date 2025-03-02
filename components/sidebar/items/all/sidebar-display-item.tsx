@@ -28,7 +28,6 @@ export const SidebarItem: FC<SidebarItemProps> = ({
     useContext(ChatbotUIContext)
 
   const router = useRouter()
-
   const itemRef = useRef<HTMLDivElement>(null)
 
   const [isHovering, setIsHovering] = useState(false)
@@ -76,11 +75,10 @@ export const SidebarItem: FC<SidebarItemProps> = ({
   // const handleClickAction = async (
   //   e: React.MouseEvent<SVGSVGElement, MouseEvent>
   // ) => {
-  //   e.stopPropagation()
+  //   e.stopPropagation();
 
-  //   const action = actionMap[contentType]
-
-  //   await action(item as any)
+  //   const action = actionMap[contentType];
+  //   await action(item as any);
   // }
 
   return (

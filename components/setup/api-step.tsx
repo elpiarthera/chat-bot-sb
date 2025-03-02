@@ -228,6 +228,7 @@ export const APIStep: FC<APIStepProps> = ({
           onChange={e => onPerplexityAPIKeyChange(e.target.value)}
         />
       </div>
+
       <div className="space-y-1">
         <Label>OpenRouter API Key</Label>
 

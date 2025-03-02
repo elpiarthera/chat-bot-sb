@@ -27,7 +27,6 @@ export async function GET() {
     Record<string, boolean>
   >((acc, provider) => {
     const key = envKeyMap[provider]
-
     if (key) {
       acc[provider] = isUsingEnvironmentKey(key as EnvKey)
     }

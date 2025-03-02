@@ -70,7 +70,6 @@ export default function SetupPage() {
       }
 
       const profile = await getProfileByUserId(session.user.id)
-
       if (profile) {
         setProfile(profile)
         setUsername(profile.username)
@@ -101,10 +100,10 @@ export default function SetupPage() {
     })()
   }, [
     router,
-    setProfile,
     setAvailableHostedModels,
     setAvailableOpenRouterModels,
-    setEnvKeyMap
+    setEnvKeyMap,
+    setProfile
   ])
 
   const handleShouldProceed = (proceed: boolean) => {
@@ -127,7 +126,6 @@ export default function SetupPage() {
 
     const user = session.user
     const profile = await getProfileByUserId(user.id)
-
     const updateProfilePayload: TablesUpdate<"profiles"> = {
       ...profile,
       has_onboarded: true,

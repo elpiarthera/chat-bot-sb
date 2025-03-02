@@ -55,7 +55,6 @@ export default async function Login({
     const password = formData.get("password") as string
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
-
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -121,7 +120,6 @@ export default async function Login({
 
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
-
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -149,7 +147,6 @@ export default async function Login({
     const email = formData.get("email") as string
     const cookieStore = cookies()
     const supabase = createClient(cookieStore)
-
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/auth/callback?next=/login/password`
     })

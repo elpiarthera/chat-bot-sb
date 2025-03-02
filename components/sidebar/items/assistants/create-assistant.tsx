@@ -19,8 +19,9 @@ export const CreateAssistant: FC<CreateAssistantProps> = ({
   isOpen,
   onOpenChange
 }) => {
-  const { profile, selectedWorkspace } = useContext(ChatbotUIContext)
-
+  const context = useContext(ChatbotUIContext) as any
+  const profile = context.profile
+  const selectedWorkspace = context.selectedWorkspace
   const [name, setName] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const [description, setDescription] = useState("")
@@ -36,7 +37,7 @@ export const CreateAssistant: FC<CreateAssistantProps> = ({
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [imageLink, setImageLink] = useState("")
   const [selectedAssistantRetrievalItems, setSelectedAssistantRetrievalItems] =
-    useState<Tables<"files">[] | Tables<"collections">[]>([])
+    useState<(Tables<"files"> | Tables<"collections">)[]>([])
   const [selectedAssistantToolItems, setSelectedAssistantToolItems] = useState<
     Tables<"tools">[]
   >([])
@@ -46,7 +47,9 @@ export const CreateAssistant: FC<CreateAssistantProps> = ({
       const previousPrompt = prevSettings.prompt || ""
       const previousPromptParts = previousPrompt.split(". ")
 
-      previousPromptParts[0] = name ? `You are ${name}` : ""
+      if (name) {
+        previousPromptParts[0] = `You are ${name}`
+      }
 
       return {
         ...prevSettings,
@@ -137,7 +140,6 @@ export const CreateAssistant: FC<CreateAssistantProps> = ({
         <>
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Assistant name..."
               value={name}

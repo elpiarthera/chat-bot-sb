@@ -10,7 +10,6 @@ export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url)
     const userId = requestUrl.searchParams.get("userId")
-
     if (!userId) {
       return NextResponse.json(
         { error: "User ID is required" },
@@ -52,7 +51,6 @@ export async function GET(request: Request) {
 
       if (sharedWorkspaces && sharedWorkspaces.length > 0) {
         const workspaceIds = sharedWorkspaces.map(item => item.workspace_id)
-
         const { data: workspaces, error: workspacesError } = await supabase
           .from("workspaces")
           .select("*")

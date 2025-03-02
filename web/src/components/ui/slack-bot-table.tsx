@@ -1,0 +1,1 @@
+import { SlackBotTable } from "@/app/admin/bots/SlackBotTable";";";"export { SlackBotTable }; "

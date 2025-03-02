@@ -48,7 +48,6 @@ export const StepContainer: FC<StepContainerProps> = ({
       <CardHeader>
         <CardTitle className="flex justify-between">
           <div>{stepTitle}</div>
-
           <div className="text-sm">
             {stepNum} / {SETUP_STEP_COUNT}
           </div>

@@ -60,7 +60,6 @@ export const CollectionItem: FC<CollectionItemProps> = ({ collection }) => {
           <>
             <div className="space-y-1">
               <Label>Files</Label>
-
               <CollectionFileSelect
                 selectedCollectionFiles={
                   renderState.selectedCollectionFiles.length === 0
@@ -82,7 +81,7 @@ export const CollectionItem: FC<CollectionItemProps> = ({ collection }) => {
                         )
                       ]
                 }
-                onCollectionFileSelect={file =>
+                onCollectionFileSelect={(file: CollectionFile) =>
                   handleFileSelect(file, renderState.setSelectedCollectionFiles)
                 }
               />
@@ -90,7 +89,6 @@ export const CollectionItem: FC<CollectionItemProps> = ({ collection }) => {
 
             <div className="space-y-1">
               <Label>Name</Label>
-
               <Input
                 placeholder="Collection name..."
                 value={name}
@@ -101,7 +99,6 @@ export const CollectionItem: FC<CollectionItemProps> = ({ collection }) => {
 
             <div className="space-y-1">
               <Label>Description</Label>
-
               <Input
                 placeholder="Collection description..."
                 value={description}

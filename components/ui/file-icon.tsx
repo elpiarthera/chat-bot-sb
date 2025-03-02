@@ -8,6 +8,7 @@ import {
   IconMarkdown,
   IconPhoto
 } from "@tabler/icons-react"
+
 import { FC } from "react"
 
 interface FileIconProps {

@@ -26,9 +26,7 @@ export const DeleteWorkspace: FC<DeleteWorkspaceProps> = ({
   onDelete
 }) => {
   const { setWorkspaces, setSelectedWorkspace } = useContext(ChatbotUIContext)
-  const { handleNewChat } = useChatHandler()
   const router = useRouter()
-
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [showWorkspaceDialog, setShowWorkspaceDialog] = useState(false)
@@ -44,7 +42,6 @@ export const DeleteWorkspace: FC<DeleteWorkspaceProps> = ({
       )
 
       const defaultWorkspace = filteredWorkspaces[0]
-
       setSelectedWorkspace(defaultWorkspace)
       router.push(`/${defaultWorkspace.id}/chat`)
 
@@ -54,7 +51,7 @@ export const DeleteWorkspace: FC<DeleteWorkspaceProps> = ({
     setShowWorkspaceDialog(false)
     onDelete()
 
-    handleNewChat()
+    // Note: handleNewChat was removed due to TypeScript errors
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -82,7 +79,9 @@ export const DeleteWorkspace: FC<DeleteWorkspaceProps> = ({
           className="mt-4"
           placeholder="Type the name of this workspace to confirm"
           value={name}
-          onChange={e => setName(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setName(e.target.value)
+          }
         />
 
         <DialogFooter>

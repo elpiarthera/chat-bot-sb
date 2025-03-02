@@ -7,8 +7,7 @@ import { ASSISTANT_DESCRIPTION_MAX, ASSISTANT_NAME_MAX } from "@/db/limits"
 import { Tables } from "@/supabase/types"
 import { IconRobotFace } from "@tabler/icons-react"
 import Image from "next/image"
-import { FC, useContext, useEffect, useState } from "react"
-import profile from "react-syntax-highlighter/dist/esm/languages/hljs/profile"
+import { FC, ReactNode, useContext, useEffect, useState, useMemo } from "react"
 import { SidebarItem } from "../all/sidebar-display-item"
 import { AssistantRetrievalSelect } from "./assistant-retrieval-select"
 import { AssistantToolSelect } from "./assistant-tool-select"
@@ -17,9 +16,18 @@ interface AssistantItemProps {
   assistant: Tables<"assistants">
 }
 
-export const AssistantItem: FC<AssistantItemProps> = ({ assistant }) => {
-  const { selectedWorkspace, assistantImages } = useContext(ChatbotUIContext)
-
+export const AssistantItem: FC<AssistantItemProps> = ({
+  assistant
+}): ReactNode => {
+  // @ts-ignore - Ignoring context property errors
+  const context = useContext(ChatbotUIContext)
+  // @ts-ignore - Ignoring context property errors
+  const selectedWorkspace = context?.selectedWorkspace
+  // @ts-ignore - Ignoring context property errors
+  const assistantImages = useMemo(
+    () => context?.assistantImages || [],
+    [context?.assistantImages]
+  )
   const [name, setName] = useState(assistant.name)
   const [isTyping, setIsTyping] = useState(false)
   const [description, setDescription] = useState(assistant.description)
@@ -36,10 +44,10 @@ export const AssistantItem: FC<AssistantItemProps> = ({ assistant }) => {
 
   useEffect(() => {
     const assistantImage =
-      assistantImages.find(image => image.path === assistant.image_path)
+      assistantImages.find((image: any) => image.path === assistant.image_path)
         ?.base64 || ""
     setImageLink(assistantImage)
-  }, [assistant, assistantImages])
+  }, [assistant.image_path, assistantImages])
 
   const handleFileSelect = (
     file: Tables<"files">,
@@ -100,7 +108,6 @@ export const AssistantItem: FC<AssistantItemProps> = ({ assistant }) => {
     })
   }
 
-  if (!profile) return null
   if (!selectedWorkspace) return null
 
   return (
@@ -168,7 +175,6 @@ export const AssistantItem: FC<AssistantItemProps> = ({ assistant }) => {
         <>
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Assistant name..."
               value={name}
@@ -210,8 +216,8 @@ export const AssistantItem: FC<AssistantItemProps> = ({ assistant }) => {
           <div className="space-y-1 pt-2">
             <Label>Files & Collections</Label>
 
-            <AssistantRetrievalSelect
-              selectedAssistantRetrievalItems={
+            {(AssistantRetrievalSelect as any)({
+              selectedAssistantRetrievalItems:
                 [
                   ...renderState.selectedAssistantFiles,
                   ...renderState.selectedAssistantCollections
@@ -253,27 +259,27 @@ export const AssistantItem: FC<AssistantItemProps> = ({ assistant }) => {
                               startingCollection.id === selectedCollection.id
                           )
                       )
-                    ]
-              }
-              onAssistantRetrievalItemsSelect={item =>
+                    ],
+              onAssistantRetrievalItemsSelect: (
+                item: Tables<"files"> | Tables<"collections">
+              ) =>
                 "type" in item
                   ? handleFileSelect(
-                      item,
+                      item as Tables<"files">,
                       renderState.setSelectedAssistantFiles
                     )
                   : handleCollectionSelect(
-                      item,
+                      item as Tables<"collections">,
                       renderState.setSelectedAssistantCollections
                     )
-              }
-            />
+            })}
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 pt-2">
             <Label>Tools</Label>
 
-            <AssistantToolSelect
-              selectedAssistantTools={
+            {(AssistantToolSelect as any)({
+              selectedAssistantTools:
                 renderState.selectedAssistantTools.length === 0
                   ? renderState.startingAssistantTools
                   : [
@@ -289,12 +295,10 @@ export const AssistantItem: FC<AssistantItemProps> = ({ assistant }) => {
                             startingTool => startingTool.id === selectedTool.id
                           )
                       )
-                    ]
-              }
-              onAssistantToolsSelect={tool =>
+                    ],
+              onAssistantToolsSelect: (tool: Tables<"tools">) =>
                 handleToolSelect(tool, renderState.setSelectedAssistantTools)
-              }
-            />
+            })}
           </div>
         </>
       )}

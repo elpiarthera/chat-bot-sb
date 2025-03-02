@@ -14,13 +14,12 @@ export const processCSV = async (csv: Blob): Promise<FileItemChunk[]> => {
     chunkOverlap: CHUNK_OVERLAP,
     separators: ["\n\n"]
   })
-  const splitDocs = await splitter.createDocuments([completeText])
 
+  const splitDocs = await splitter.createDocuments([completeText])
   let chunks: FileItemChunk[] = []
 
   for (let i = 0; i < splitDocs.length; i++) {
     const doc = splitDocs[i]
-
     chunks.push({
       content: doc.pageContent,
       tokens: encode(doc.pageContent).length

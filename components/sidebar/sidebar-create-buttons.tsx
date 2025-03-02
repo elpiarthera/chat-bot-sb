@@ -1,4 +1,3 @@
-import { useChatHandler } from "@/components/chat/chat-hooks/use-chat-handler"
 import { ChatbotUIContext } from "@/context/context"
 import { createFolder } from "@/db/folders"
 import { ContentType } from "@/types"
@@ -12,6 +11,7 @@ import { CreateModel } from "./items/models/create-model"
 import { CreatePreset } from "./items/presets/create-preset"
 import { CreatePrompt } from "./items/prompts/create-prompt"
 import { CreateTool } from "./items/tools/create-tool"
+import { useRouter } from "next/navigation"
 
 interface SidebarCreateButtonsProps {
   contentType: ContentType
@@ -22,9 +22,22 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
   contentType,
   hasData
 }) => {
-  const { profile, selectedWorkspace, folders, setFolders } =
+  const { profile, selectedWorkspace, folders, setFolders, selectedAssistant } =
     useContext(ChatbotUIContext)
-  const { handleNewChat } = useChatHandler()
+
+  const router = useRouter()
+
+  // Implement a simple handleNewChat function
+  const handleNewChat = async () => {
+    if (!selectedWorkspace) return
+
+    // Navigate to the new chat page
+    router.push(
+      `/chat/${selectedWorkspace.id}/${
+        selectedAssistant ? `assistant/${selectedAssistant.id}` : ""
+      }`
+    )
+  }
 
   const [isCreatingPrompt, setIsCreatingPrompt] = useState(false)
   const [isCreatingPreset, setIsCreatingPreset] = useState(false)
@@ -51,53 +64,37 @@ export const SidebarCreateButtons: FC<SidebarCreateButtonsProps> = ({
   const getCreateFunction = () => {
     switch (contentType) {
       case "chats":
-        return async () => {
-          handleNewChat()
-        }
+        return () => handleNewChat()
 
       case "presets":
-        return async () => {
-          setIsCreatingPreset(true)
-        }
+        return () => setIsCreatingPreset(true)
 
       case "prompts":
-        return async () => {
-          setIsCreatingPrompt(true)
-        }
+        return () => setIsCreatingPrompt(true)
 
       case "files":
-        return async () => {
-          setIsCreatingFile(true)
-        }
+        return () => setIsCreatingFile(true)
 
       case "collections":
-        return async () => {
-          setIsCreatingCollection(true)
-        }
+        return () => setIsCreatingCollection(true)
 
       case "assistants":
-        return async () => {
-          setIsCreatingAssistant(true)
-        }
+        return () => setIsCreatingAssistant(true)
 
       case "tools":
-        return async () => {
-          setIsCreatingTool(true)
-        }
+        return () => setIsCreatingTool(true)
 
       case "models":
-        return async () => {
-          setIsCreatingModel(true)
-        }
+        return () => setIsCreatingModel(true)
 
       default:
-        break
+        return () => {}
     }
   }
 
   return (
     <div className="flex w-full space-x-2">
-      <Button className="flex h-[36px] grow" onClick={getCreateFunction()}>
+      <Button className="flex h-[36px] grow" onClick={getCreateFunction}>
         <IconPlus className="mr-1" size={20} />
         New{" "}
         {contentType.charAt(0).toUpperCase() +

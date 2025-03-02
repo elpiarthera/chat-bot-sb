@@ -152,11 +152,10 @@ export const createFile = async (
   }
 
   const fetchedFile = await getFileById(createdFile.id)
-
   return fetchedFile
 }
 
-// // Handle docx files
+// Handle docx files
 export const createDocXFile = async (
   text: string,
   file: File,
@@ -216,7 +215,6 @@ export const createDocXFile = async (
   }
 
   const fetchedFile = await getFileById(createdFile.id)
-
   return fetchedFile
 }
 

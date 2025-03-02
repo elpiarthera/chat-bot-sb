@@ -39,15 +39,12 @@ export const FileItem: FC<FileItemProps> = ({ file }) => {
 
           <div className="flex flex-col justify-between">
             <div>{file.type}</div>
-
             <div>{formatFileSize(file.size)}</div>
-
             <div>{file.tokens.toLocaleString()} tokens</div>
           </div>
 
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="File name..."
               value={name}
@@ -58,7 +55,6 @@ export const FileItem: FC<FileItemProps> = ({ file }) => {
 
           <div className="space-y-1">
             <Label>Description</Label>
-
             <Input
               placeholder="File description..."
               value={description}

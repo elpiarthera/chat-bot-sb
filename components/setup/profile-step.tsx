@@ -61,30 +61,19 @@ export const ProfileStep: FC<ProfileStepProps> = ({
         return
       }
 
-      const usernameRegex = /^[a-zA-Z0-9_]+$/
-      if (!usernameRegex.test(username)) {
-        onUsernameAvailableChange(false)
-        toast.error(
-          "Username must be letters, numbers, or underscores only - no other characters or spacing allowed."
+      try {
+        const response = await fetch(
+          `/api/profile/check-username?username=${username}`
         )
-        return
+        const data = await response.json()
+
+        onUsernameAvailableChange(data.available)
+      } catch (error) {
+        console.error("Error checking username availability:", error)
+        onUsernameAvailableChange(false)
       }
-
-      setLoading(true)
-
-      const response = await fetch(`/api/username/available`, {
-        method: "POST",
-        body: JSON.stringify({ username })
-      })
-
-      const data = await response.json()
-      const isAvailable = data.isAvailable
-
-      onUsernameAvailableChange(isAvailable)
-
-      setLoading(false)
-    }, 500),
-    []
+    }, 300),
+    [onUsernameAvailableChange]
   )
 
   return (

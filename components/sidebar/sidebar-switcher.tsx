@@ -75,7 +75,6 @@ export const SidebarSwitcher: FC<SidebarSwitcherProps> = ({
           onContentTypeChange={onContentTypeChange}
         />
       </TabsList>
-
       <div className="flex flex-col items-center space-y-4 p-2">
         {/* TODO */}
         {/* <WithTooltip display={<div>Import</div>} trigger={<Import />} /> */}

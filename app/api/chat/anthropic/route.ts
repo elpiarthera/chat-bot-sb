@@ -4,7 +4,6 @@ import { getBase64FromDataURL, getMediaTypeFromDataURL } from "@/lib/utils"
 import { ChatSettings } from "@/types"
 import Anthropic from "@anthropic-ai/sdk"
 import { NextRequest, NextResponse } from "next/server"
-
 export const runtime = "edge"
 
 export async function POST(request: NextRequest) {

@@ -1,27 +1,26 @@
 import { ChatbotUIContext } from "@/context/context"
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import useHotkey from "@/lib/hooks/use-hotkey"
-import { LLMID, ModelProvider } from "@/types"
+import { LLMID, ModelProvider, ChatSettings as ChatSettingsType } from "@/types"
 import { IconAdjustmentsHorizontal } from "@tabler/icons-react"
-import { FC, useContext, useEffect, useRef, useState } from "react"
+import { FC, ReactNode, useContext, useEffect, useRef, useState } from "react"
 import { ChatSettingsForm } from "../ui/chat-settings-form"
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover"
 
 interface ChatSettingsProps {}
 
-export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
+export const ChatSettings: FC<ChatSettingsProps> = (): ReactNode => {
   useHotkey("i", () => handleClick())
 
-  const {
-    chatSettings,
-    setChatSettings,
-    models,
-    availableHostedModels,
-    availableLocalModels,
-    availableOpenRouterModels,
-    profile
-  } = useContext(ChatbotUIContext)
-
+  // Use type assertion to access properties that exist in the context
+  const context = useContext(ChatbotUIContext) as any
+  const chatSettings = context.chatSettings
+  const setChatSettings = context.setChatSettings
+  const models = context.models || []
+  const availableHostedModels = context.availableHostedModels || []
+  const availableLocalModels = context.availableLocalModels || []
+  const availableOpenRouterModels = context.availableOpenRouterModels || []
+  const profile = context.profile
   const [isOpen, setIsOpen] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -47,21 +46,28 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
     }
 
     // Ensure settings are within model limits
-    setChatSettings({
-      ...chatSettings,
-      temperature: Math.min(
-        chatSettings.temperature,
-        CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_TEMPERATURE || 1
-      ),
-      contextLength: Math.min(
-        chatSettings.contextLength,
-        CHAT_SETTING_LIMITS[chatSettings.model]?.MAX_CONTEXT_LENGTH || 4096
-      )
-    })
-  }, [chatSettings?.model])
+    if (chatSettings.model) {
+      const modelId = chatSettings.model as LLMID
+      const modelLimits = CHAT_SETTING_LIMITS[modelId]
+
+      if (modelLimits) {
+        setChatSettings({
+          ...chatSettings,
+          temperature: Math.min(
+            chatSettings.temperature,
+            modelLimits.MAX_TEMPERATURE || 1
+          ),
+          contextLength: Math.min(
+            chatSettings.contextLength,
+            modelLimits.MAX_CONTEXT_LENGTH || 4096
+          )
+        })
+      }
+    }
+  }, [chatSettings, chatSettings?.model, setChatSettings])
 
   const allModels = [
-    ...models.map(model => ({
+    ...models.map((model: any) => ({
       modelId: model.model_id as LLMID,
       modelName: model.name,
       provider: "custom" as ModelProvider,
@@ -75,7 +81,7 @@ export const ChatSettings: FC<ChatSettingsProps> = ({}) => {
   ]
 
   const fullModel = allModels.find(
-    llm => llm.modelId === (chatSettings?.model || "gpt-4")
+    (llm: any) => llm.modelId === (chatSettings?.model || "gpt-4")
   )
 
   if (!profile) return null

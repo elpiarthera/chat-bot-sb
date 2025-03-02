@@ -15,6 +15,7 @@ export const PromptItem: FC<PromptItemProps> = ({ prompt }) => {
   const [name, setName] = useState(prompt.name)
   const [content, setContent] = useState(prompt.content)
   const [isTyping, setIsTyping] = useState(false)
+
   return (
     <SidebarItem
       item={prompt}
@@ -26,7 +27,6 @@ export const PromptItem: FC<PromptItemProps> = ({ prompt }) => {
         <>
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Prompt name..."
               value={name}
@@ -39,7 +39,6 @@ export const PromptItem: FC<PromptItemProps> = ({ prompt }) => {
 
           <div className="space-y-1">
             <Label>Prompt</Label>
-
             <TextareaAutosize
               placeholder="Prompt..."
               value={content}

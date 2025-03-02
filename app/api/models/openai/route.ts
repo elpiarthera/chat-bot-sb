@@ -7,7 +7,6 @@ import { cookies } from "next/headers"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
-
 export async function GET() {
   console.log("🔍 OpenAI models API: Starting to fetch models")
 
@@ -21,7 +20,7 @@ export async function GET() {
     // Direct cookie access - simpler approach
     const cookieStore = cookies()
     console.log(
-      "🔍 OpenAI models API: Available cookies:",
+      "🔍 OpenAI models API: Available, cookies:",
       cookieStore
         .getAll()
         .map(c => c.name)
@@ -31,7 +30,6 @@ export async function GET() {
     // Ensure Supabase URL and Anon Key are set
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error(
         "❌ OpenAI models API: Missing Supabase credentials in environment variables"
@@ -61,7 +59,7 @@ export async function GET() {
               value: cookie.value
             }))
           } catch (e) {
-            console.error("❌ OpenAI models API: Error getting cookies:", e)
+            console.error("❌ OpenAI models API: Error getting, cookies:", e)
             return []
           }
         },
@@ -78,17 +76,17 @@ export async function GET() {
       const { data: userData, error: userError } = await supabase.auth.getUser()
       if (userError) {
         console.error(
-          "❌ OpenAI models API: Error in getUser:",
+          "❌ OpenAI models API: Error in, getUser:",
           userError.message
         )
       } else if (userData && userData.user) {
         user = userData.user
         console.log(
-          `✅ OpenAI models API: User authenticated via getUser: ${user.id}`
+          `✅ OpenAI models API: User authenticated via, getUser: ${user.id}`
         )
       }
     } catch (e) {
-      console.error("❌ OpenAI models API: Exception in getUser:", e)
+      console.error("❌ OpenAI models API: Exception in, getUser:", e)
     }
 
     // Fallback to getSession if getUser failed
@@ -98,7 +96,7 @@ export async function GET() {
           await supabase.auth.getSession()
         if (sessionError) {
           console.error(
-            "❌ OpenAI models API: Error in getSession:",
+            "❌ OpenAI models API: Error in, getSession:",
             sessionError.message
           )
         } else if (
@@ -108,12 +106,12 @@ export async function GET() {
         ) {
           user = sessionData.session.user
           console.log(
-            `⚠️ OpenAI models API: User authenticated via fallback getSession: ${user.id}`
+            `⚠️ OpenAI models API: User authenticated via fallback, getSession: ${user.id}`
           )
         }
       } catch (e) {
         console.error(
-          "❌ OpenAI models API: Exception in getSession fallback:",
+          "❌ OpenAI models API: Exception in getSession, fallback:",
           e
         )
       }
@@ -121,7 +119,7 @@ export async function GET() {
 
     // Log authentication result
     console.log(
-      `🔍 OpenAI models API: Authentication result:`,
+      `🔍 OpenAI models API: Authentication, result:`,
       user ? `User authenticated: ${user.id}` : "No user found"
     )
 
@@ -142,7 +140,7 @@ export async function GET() {
       )
     }
 
-    console.log(`✅ OpenAI models API: User authenticated: ${user.id}`)
+    console.log(`✅ OpenAI models API: User, authenticated: ${user.id}`)
 
     // Get the user's profile
     console.log(`🔍 OpenAI models API: Retrieving profile for user ${user.id}`)
@@ -154,7 +152,7 @@ export async function GET() {
       .single()
 
     console.log(
-      `🔍 OpenAI models API: Profile query:`,
+      `🔍 OpenAI models API: Profile, query:`,
       `SELECT * FROM profiles WHERE user_id = '${user.id}'`
     )
 
@@ -162,7 +160,7 @@ export async function GET() {
 
     if (profileError) {
       console.error(
-        `❌ OpenAI models API: Error retrieving profile:`,
+        `❌ OpenAI models API: Error retrieving, profile:`,
         profileError
       )
     }
@@ -175,12 +173,12 @@ export async function GET() {
 
     if (profile) {
       // Log the profile keys to see its structure
-      console.log(`🔍 OpenAI models API: Profile keys:`, Object.keys(profile))
+      console.log(`🔍 OpenAI models API: Profile, keys:`, Object.keys(profile))
 
       // Check specifically for the openai_api_key field
       if ("openai_api_key" in profile) {
         console.log(
-          `🔍 OpenAI models API: OpenAI API key in profile: ${profile.openai_api_key ? "Present (not empty)" : "Empty string"}`
+          `🔍 OpenAI models API: OpenAI API key in, profile: ${profile.openai_api_key ? "Present (not empty)" : "Empty string"}`
         )
       } else {
         console.log(
@@ -234,7 +232,6 @@ export async function GET() {
     try {
       const openai = new OpenAI(openaiConfig)
       const response = await openai.models.list()
-
       // Filter for chat models only (those starting with gpt-)
       const chatModels = response.data.filter(model =>
         model.id.startsWith("gpt-")
@@ -256,35 +253,35 @@ export async function GET() {
       )
     } catch (openaiError) {
       console.error(
-        "❌ OpenAI models API: Error fetching from OpenAI:",
+        "❌ OpenAI models API: Error fetching from, OpenAI:",
         openaiError
       )
-      // Fall through to return hardcoded models
-    }
 
-    // Return hardcoded models as fallback
-    console.log("⚠️ OpenAI models API: Using fallback models")
-    return new Response(
-      JSON.stringify({
-        models: OPENAI_LLM_LIST.map(model => ({ id: model.modelId })),
-        source: "fallback"
-      }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "no-store, max-age=0"
+      // Return hardcoded models on error
+      return new Response(
+        JSON.stringify({
+          models: OPENAI_LLM_LIST.map(model => ({ id: model.modelId })),
+          source: "fallback",
+          error: "Failed to fetch models from OpenAI API"
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store, max-age=0"
+          }
         }
-      }
-    )
+      )
+    }
   } catch (error) {
     console.error("❌ OpenAI models API: Unexpected error:", error)
 
-    // Return hardcoded models as a last resort
+    // Return hardcoded models on any error
     return new Response(
       JSON.stringify({
         models: OPENAI_LLM_LIST.map(model => ({ id: model.modelId })),
-        source: "fallback"
+        source: "fallback",
+        error: "Unexpected error occurred"
       }),
       {
         status: 200,

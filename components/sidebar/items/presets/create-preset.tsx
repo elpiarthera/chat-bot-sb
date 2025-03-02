@@ -60,7 +60,6 @@ export const CreatePreset: FC<CreatePresetProps> = ({
         <>
           <div className="space-y-1">
             <Label>Name</Label>
-
             <Input
               placeholder="Preset name..."
               value={name}

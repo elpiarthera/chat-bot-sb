@@ -26,21 +26,17 @@ const ImagePicker: FC<ImagePickerProps> = ({
   const handleImageSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const file = e.target.files[0]
-
       if (file.size > 6000000) {
         toast.error("Image must be less than 6MB!")
         return
       }
 
       const url = URL.createObjectURL(file)
-
       const img = new window.Image()
       img.src = url
-
       img.onload = () => {
         const canvas = document.createElement("canvas")
         const ctx = canvas.getContext("2d")
-
         if (!ctx) {
           toast.error("Unable to create canvas context.")
           return
@@ -63,7 +59,6 @@ const ImagePicker: FC<ImagePickerProps> = ({
         )
 
         const squareUrl = canvas.toDataURL()
-
         setPreviewSrc(squareUrl)
         setPreviewImage(file)
         onSrcChange(squareUrl)

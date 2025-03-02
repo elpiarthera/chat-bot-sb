@@ -13,7 +13,6 @@ export async function POST(request: Request) {
   }
 
   const uniqueFileIds = [...new Set(fileIds)]
-
   try {
     const supabaseAdmin = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,7 +53,6 @@ export async function POST(request: Request) {
       })
 
       const openaiEmbedding = response.data.map(item => item.embedding)[0]
-
       const { data: openaiFileItems, error: openaiError } =
         await supabaseAdmin.rpc("match_file_items_openai", {
           query_embedding: openaiEmbedding as any,

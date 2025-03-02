@@ -1,0 +1,6 @@
+@import 'tailwindcss/base';
+@import './app/globals.css';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Custom themes can be imported individually when needed */ 

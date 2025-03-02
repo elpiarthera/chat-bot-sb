@@ -123,7 +123,6 @@ export const createTempMessages = (
   }
 
   let newMessages = []
-
   if (isRegeneration) {
     const lastMessageIndex = chatMessages.length - 1
     chatMessages[lastMessageIndex].message.content = ""
@@ -157,7 +156,6 @@ export const handleLocalChat = async (
   setToolInUse: React.Dispatch<React.SetStateAction<string>>
 ) => {
   const formattedMessages = await buildFinalMessages(payload, profile, [])
-
   // Ollama API: https://github.com/jmorganca/ollama/blob/main/docs/api.md
   const response = await fetchChatResponse(
     process.env.NEXT_PUBLIC_OLLAMA_URL + "/api/chat",
@@ -271,7 +269,6 @@ export const fetchChatResponse = async (
     }
 
     const errorData = await response.json()
-
     toast.error(errorData.message)
 
     setIsGenerating(false)
@@ -292,7 +289,6 @@ export const processResponse = async (
 ) => {
   let fullText = ""
   let contentToAdd = ""
-
   if (response.body) {
     await consumeReadableStream(
       response.body,
@@ -430,7 +426,6 @@ export const handleCreateMessages = async (
 
   if (isRegeneration) {
     const lastStartingMessage = chatMessages[chatMessages.length - 1].message
-
     const updatedMessage = await updateMessage(lastStartingMessage.id, {
       ...lastStartingMessage,
       content: generatedText

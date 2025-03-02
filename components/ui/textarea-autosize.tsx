@@ -5,10 +5,8 @@ import ReactTextareaAutosize from "react-textarea-autosize"
 interface TextareaAutosizeProps {
   value: string
   onValueChange: (value: string) => void
-
   textareaRef?: React.RefObject<HTMLTextAreaElement>
   className?: string
-
   placeholder?: string
   minRows?: number
   maxRows?: number
@@ -41,7 +39,7 @@ export const TextareaAutosize: FC<TextareaAutosizeProps> = ({
         className
       )}
       minRows={minRows}
-      maxRows={minRows > maxRows ? minRows : maxRows}
+      maxRows={maxRows}
       placeholder={placeholder}
       value={value}
       maxLength={maxLength}

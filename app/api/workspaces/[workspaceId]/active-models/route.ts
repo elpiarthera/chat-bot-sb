@@ -28,7 +28,7 @@ export async function GET(
     const cookieStore = cookies()
     // Log available cookies
     console.log(
-      "🔍 Active Models API: Available cookies:",
+      "🔍 Active Models API: Available, cookies:",
       cookieStore
         .getAll()
         .map(c => c.name)
@@ -62,7 +62,7 @@ export async function GET(
     } = await supabase.auth.getUser()
 
     if (userError) {
-      console.error("❌ Active Models API: Auth error:", userError.message)
+      console.error("❌ Active Models API: Auth, error:", userError.message)
       console.error(
         "❌ Active Models API: Auth error details:",
         JSON.stringify(userError)
@@ -75,7 +75,7 @@ export async function GET(
       return NextResponse.json([])
     }
 
-    console.log(`✅ Active Models API: User authenticated: ${user.id}`)
+    console.log(`✅ Active Models API: User, authenticated: ${user.id}`)
 
     // Query the active models
     const { data, error } = await supabase
@@ -84,7 +84,7 @@ export async function GET(
       .eq("workspace_id", workspaceId)
 
     if (error) {
-      console.error("❌ Active Models API: Database error:", error.message)
+      console.error("❌ Active Models API: Database, error:", error.message)
       return NextResponse.json([])
     }
 
@@ -93,7 +93,7 @@ export async function GET(
     )
     return NextResponse.json(data || [])
   } catch (error) {
-    console.error("❌ Active Models API: Unexpected error:", error)
+    console.error("❌ Active Models API: Unexpected, error:", error)
     return NextResponse.json([])
   }
 }
@@ -163,7 +163,7 @@ export async function POST(
       )
     }
 
-    console.log(`✅ Active Models API: User authenticated: ${user.id}`)
+    console.log(`✅ Active Models API: User, authenticated: ${user.id}`)
 
     // Get the request body
     let activeModels
@@ -175,7 +175,7 @@ export async function POST(
       )
     } catch (parseError) {
       console.error(
-        "❌ Active Models API: Error parsing request body:",
+        "❌ Active Models API: Error parsing request, body:",
         parseError
       )
       return NextResponse.json(
@@ -193,7 +193,7 @@ export async function POST(
 
     if (deleteError) {
       console.error(
-        "❌ Active Models API: Error deleting models:",
+        "❌ Active Models API: Error deleting, models:",
         deleteError.message
       )
     }
@@ -219,7 +219,7 @@ export async function POST(
 
       if (insertError) {
         console.error(
-          "❌ Active Models API: Insert error:",
+          "❌ Active Models API: Insert, error:",
           insertError.message
         )
         return NextResponse.json(
@@ -235,7 +235,7 @@ export async function POST(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("❌ Active Models API: Unexpected error:", error)
+    console.error("❌ Active Models API: Unexpected, error:", error)
     return NextResponse.json(
       { error: "An unexpected error occurred" },
       { status: 500 }

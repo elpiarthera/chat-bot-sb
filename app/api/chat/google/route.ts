@@ -1,7 +1,6 @@
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import { GoogleGenerativeAI } from "@google/generative-ai"
-
 export const runtime = "edge"
 
 export async function POST(request: Request) {
@@ -20,7 +19,6 @@ export async function POST(request: Request) {
     const googleModel = genAI.getGenerativeModel({ model: chatSettings.model })
 
     const lastMessage = messages.pop()
-
     const chat = googleModel.startChat({
       history: messages,
       generationConfig: {
@@ -29,7 +27,6 @@ export async function POST(request: Request) {
     })
 
     const response = await chat.sendMessageStream(lastMessage.parts)
-
     const encoder = new TextEncoder()
     const readableStream = new ReadableStream({
       async start(controller) {

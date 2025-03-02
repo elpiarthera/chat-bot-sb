@@ -1,20 +1,36 @@
-"use client"
-
 import { ChatbotUIContext } from "@/context/context"
-import { LLM, ModelProvider } from "@/types"
-import { FC, useContext, useState, useEffect, useRef } from "react"
+import {
+  FC,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  ReactNode,
+  useMemo
+} from "react"
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger
-} from "../ui/accordion"
-import { Checkbox } from "../ui/checkbox"
-import { Label } from "../ui/label"
-import { ScrollArea } from "../ui/scroll-area"
+} from "@/components/ui/accordion"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { ModelIcon } from "../models/model-icon"
 import { WithTooltip } from "../ui/with-tooltip"
 import { IconInfoCircle } from "@tabler/icons-react"
+
+// Define ModelProvider type if it's not available from imports
+type ModelProvider =
+  | "openai"
+  | "anthropic"
+  | "google"
+  | "local"
+  | "hosted"
+  | "openrouter"
+  | "custom"
+  | string
 
 interface WorkspaceActiveModelsProps {
   workspaceId: string
@@ -27,73 +43,82 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
   workspaceId,
   onActiveModelsChange
 }) => {
-  console.log("WorkspaceActiveModels rendering with workspaceId:", workspaceId)
+  const context = useContext(ChatbotUIContext) as any
+  const { modelProviders, hostedModels, localModels, openRouterModels } =
+    context
+
+  const [activeModelIds, setActiveModelIds] = useState<string[]>([])
+  const [isLoadingModels, setIsLoadingModels] = useState(true)
+  const prevActiveModelIdsRef = useRef<any[]>([])
+
+  // Wrap model variables in useMemo to avoid dependency changes on every render
+  const modelVariables = useMemo(() => {
+    const models = modelProviders?.flatMap((provider: any) => {
+      if (provider.provider === "local") return localModels || []
+      if (provider.provider === "hosted") return hostedModels || []
+      if (provider.provider === "openrouter") return openRouterModels || []
+      return []
+    })
+    const availableHostedModels = hostedModels || []
+    const availableLocalModels = localModels || []
+    const availableOpenRouterModels = openRouterModels || []
+    return {
+      models,
+      availableHostedModels,
+      availableLocalModels,
+      availableOpenRouterModels
+    }
+  }, [modelProviders, localModels, hostedModels, openRouterModels])
 
   const {
     models,
     availableHostedModels,
     availableLocalModels,
     availableOpenRouterModels
-  } = useContext(ChatbotUIContext)
+  } = modelVariables
 
-  // Add detailed logging to check what models are available
-  console.log("Models context data:", {
-    customModels: models?.length || 0,
-    hostedModels: availableHostedModels?.length || 0,
-    localModels: availableLocalModels?.length || 0,
-    openRouterModels: availableOpenRouterModels?.length || 0
-  })
+  // Calculate all unique models and group them by provider
+  const allUniqueModels = useMemo(() => {
+    const allModels = [
+      ...(availableHostedModels || []),
+      ...(availableLocalModels || []),
+      ...(availableOpenRouterModels || []),
+      ...(models || []).map((model: any) => ({
+        modelId: model.model_id as string,
+        modelName: model.name,
+        provider: "custom" as ModelProvider
+      }))
+    ]
 
-  if (availableHostedModels?.length) {
-    console.log(
-      "First few hosted models:",
-      availableHostedModels.slice(0, 3).map(m => m.modelName)
+    // Filter out duplicate models by modelId and also filter out undefined/null values
+    return allModels.filter(
+      (model: any, index: number, self: any[]) =>
+        model &&
+        model.modelId &&
+        index === self.findIndex((m: any) => m && m.modelId === model.modelId)
     )
-  } else {
-    console.log("No hosted models available")
-  }
+  }, [
+    availableHostedModels,
+    availableLocalModels,
+    availableOpenRouterModels,
+    models
+  ])
 
-  // Create a ref to store previous values
-  const prevActiveModelIdsRef = useRef<string[]>([])
+  // Group models by provider
+  const groupedModels = useMemo(() => {
+    const grouped: Record<string, any[]> = {}
 
-  // Initialize with empty array first to prevent errors
-  const [activeModelIds, setActiveModelIds] = useState<string[]>([])
-
-  // Group models by provider - safely handle potential undefined arrays
-  const allModels = [
-    ...(availableHostedModels || []),
-    ...(availableLocalModels || []),
-    ...(availableOpenRouterModels || []),
-    ...(models || []).map(model => ({
-      modelId: model.model_id as string,
-      modelName: model.name,
-      provider: "custom" as ModelProvider
-    }))
-  ]
-
-  // Filter out duplicate models by modelId and also filter out undefined/null values
-  const allUniqueModels = allModels.filter(
-    (model, index, self) =>
-      model &&
-      model.modelId &&
-      index === self.findIndex(m => m && m.modelId === model.modelId)
-  )
-
-  const groupedModels = allUniqueModels.reduce<Record<string, LLM[]>>(
-    (groups, model) => {
-      if (!model || !model.provider) return groups
-
-      const key = model.provider
-      if (!groups[key]) {
-        groups[key] = []
+    allUniqueModels.forEach((model: any) => {
+      const provider = model.provider || "unknown"
+      if (!grouped[provider]) {
+        grouped[provider] = []
       }
-      groups[key].push(model as LLM)
-      return groups
-    },
-    {}
-  )
+      grouped[provider].push(model)
+    })
 
-  // Use useEffect to initialize and update active models when context data changes
+    return grouped
+  }, [allUniqueModels])
+
   useEffect(() => {
     // Wait for models to be loaded before initializing
     if (
@@ -110,7 +135,7 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
       ...(availableHostedModels || []),
       ...(availableLocalModels || []),
       ...(availableOpenRouterModels || []),
-      ...(models || []).map(model => ({
+      ...(models || []).map((model: any) => ({
         modelId: model.model_id as string,
         modelName: model.name,
         provider: "custom" as ModelProvider
@@ -119,15 +144,15 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
 
     // Filter out duplicate models by modelId and also filter out undefined/null values
     const uniqueModelsInEffect = allModelsInEffect.filter(
-      (model, index, self) =>
+      (model: any, index: number, self: any[]) =>
         model &&
         model.modelId &&
-        index === self.findIndex(m => m && m.modelId === model.modelId)
+        index === self.findIndex((m: any) => m && m.modelId === model.modelId)
     )
 
     // Helper function to find provider for a model
     const findProviderForModel = (modelId: string) => {
-      const model = uniqueModelsInEffect.find(m => m.modelId === modelId)
+      const model = uniqueModelsInEffect.find((m: any) => m.modelId === modelId)
       return model?.provider || "unknown"
     }
 
@@ -151,73 +176,34 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
           }
         )
 
-        console.log("Active models fetch response status:", response.status)
-
-        if (response.ok) {
-          let data
-          try {
-            data = await response.json()
-            console.log("Fetched active models:", data)
-          } catch (jsonError) {
-            console.error("Error parsing active models JSON:", jsonError)
-            // Initialize with all models in case of error
-            const allModelIds = uniqueModelsInEffect
-              .map(model => model.modelId)
-              .filter(Boolean)
-            setActiveModelIds(allModelIds)
-            return
-          }
-
-          if (data && data.length > 0) {
-            // Extract model IDs from the response
-            const savedModelIds = data.map(
-              (model: { model_id: string }) => model.model_id
-            )
-
-            if (savedModelIds && savedModelIds.length > 0) {
-              // Use the saved models from database
-              console.log("Using saved model selection:", savedModelIds)
-              setActiveModelIds(savedModelIds)
-              return // Exit early as we've set the models
-            }
-          }
-        } else {
-          console.error(
-            "Error fetching active models. Status:",
-            response.status
-          )
-          try {
-            const errorText = await response.text()
-            console.error("Error details:", errorText)
-          } catch (e) {
-            console.error("Could not read error details")
-          }
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error("Error fetching active models:", errorText)
+          setIsLoadingModels(false)
+          return
         }
 
-        // If no data returned, API error, or no saved models, fallback to all models
-        console.log("No saved models found or error, selecting all models")
-        const allModelIds = uniqueModelsInEffect
-          .map(model => model.modelId)
-          .filter(Boolean)
-        setActiveModelIds(allModelIds)
-      } catch (err) {
-        console.error("Error fetching active models:", err)
-        // Initialize with all models in case of error
-        const allModelIds = uniqueModelsInEffect
-          .map(model => model.modelId)
-          .filter(Boolean)
-        setActiveModelIds(allModelIds)
+        const data = await response.json()
+        console.log("Active models data:", data)
+
+        // Set the active model IDs
+        setActiveModelIds(data.map((model: any) => model.model_id))
+        setIsLoadingModels(false)
+      } catch (error) {
+        console.error("Error fetching active models:", error)
+        setIsLoadingModels(false)
       }
     }
 
-    // Call the function to fetch active models
+    // Call the fetch function
     fetchActiveModels()
   }, [
+    workspaceId,
     availableHostedModels,
     availableLocalModels,
     availableOpenRouterModels,
     models,
-    workspaceId
+    onActiveModelsChange
   ])
 
   // Fix the useEffect that notifies parent component to prevent infinite loops
@@ -234,11 +220,11 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
     if (!hasChanged) return
 
     // Update the ref with current values
-    prevActiveModelIdsRef.current = [...activeModelIds]
+    prevActiveModelIdsRef.current = [activeModelIds, onActiveModelsChange]
 
     // Helper function to find provider for a model
     const findProviderForModel = (modelId: string) => {
-      const model = allUniqueModels.find(m => m.modelId === modelId)
+      const model = allUniqueModels.find((m: any) => m.modelId === modelId)
       return model?.provider || "unknown"
     }
 
@@ -249,7 +235,7 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
 
     // Notify parent about the change
     onActiveModelsChange(activeModelsWithProvider)
-  }, [activeModelIds])
+  }, [activeModelIds, onActiveModelsChange, allUniqueModels])
 
   const handleToggleModel = (modelId: string) => {
     setActiveModelIds(prev => {
@@ -298,106 +284,37 @@ export const WorkspaceActiveModels: FC<WorkspaceActiveModelsProps> = ({
   }
 
   return (
-    <div className="space-y-2">
-      <div className="mb-2 text-sm">
-        Select which models should be available in this workspace. Only selected
-        models will be displayed in the model selector.
+    <>
+      <div className="space-y-2">
+        <div className="mb-2 text-sm">
+          Select which models should be available in this workspace. Only
+          selected models will be displayed in the model selector.
+        </div>
+        <ScrollArea className="h-[400px] pr-4">
+          <Accordion type="multiple" className="w-full">
+            {Object.entries(groupedModels).map(([provider, models]) => (
+              <AccordionItem key={provider} value={provider}>
+                <div className="flex items-center">
+                  <div className="flex items-center space-x-2 py-2">
+                    <Checkbox
+                      id={`provider-${provider}`}
+                      checked={isProviderActive(provider)}
+                      data-state={
+                        isProviderPartiallyActive(provider)
+                          ? "indeterminate"
+                          : undefined
+                      }
+                      onCheckedChange={(checked: boolean | "indeterminate") =>
+                        handleToggleProvider(provider, checked === true)
+                      }
+                    />
+                  </div>
+                </div>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </ScrollArea>
       </div>
-
-      <ScrollArea className="h-[400px] pr-4">
-        <Accordion type="multiple" className="w-full">
-          {Object.entries(groupedModels).map(([provider, models]) => (
-            <AccordionItem key={provider} value={provider}>
-              <div className="flex items-center">
-                <div className="flex items-center space-x-2 py-2">
-                  <Checkbox
-                    id={`provider-${provider}`}
-                    checked={isProviderActive(provider)}
-                    data-state={
-                      isProviderPartiallyActive(provider)
-                        ? "indeterminate"
-                        : undefined
-                    }
-                    onCheckedChange={checked =>
-                      handleToggleProvider(provider, checked === true)
-                    }
-                  />
-                  <Label htmlFor={`provider-${provider}`}>
-                    {provider.charAt(0).toUpperCase() + provider.slice(1)}
-                  </Label>
-                </div>
-                <AccordionTrigger className="flex-1 py-2" />
-              </div>
-              <AccordionContent>
-                <div className="space-y-2 pl-6">
-                  {models.map(model => (
-                    <div
-                      key={model.modelId}
-                      className="flex items-center space-x-2"
-                    >
-                      <Checkbox
-                        id={`model-${model.modelId}`}
-                        checked={activeModelIds.includes(model.modelId)}
-                        onCheckedChange={() => handleToggleModel(model.modelId)}
-                      />
-                      <div className="flex items-center">
-                        <ModelIcon
-                          provider={model.provider}
-                          width={16}
-                          height={16}
-                        />
-                        <WithTooltip
-                          display={
-                            <div>
-                              {model.provider !== "ollama" && model.pricing && (
-                                <div className="space-y-1 text-sm">
-                                  <div>
-                                    <span className="font-semibold">
-                                      Input Cost:
-                                    </span>{" "}
-                                    {model.pricing.inputCost}{" "}
-                                    {model.pricing.currency} per{" "}
-                                    {model.pricing.unit}
-                                  </div>
-                                  {model.pricing.outputCost && (
-                                    <div>
-                                      <span className="font-semibold">
-                                        Output Cost:
-                                      </span>{" "}
-                                      {model.pricing.outputCost}{" "}
-                                      {model.pricing.currency} per{" "}
-                                      {model.pricing.unit}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          }
-                          side="bottom"
-                          trigger={
-                            <Label
-                              htmlFor={`model-${model.modelId}`}
-                              className="ml-2 flex cursor-pointer items-center"
-                            >
-                              <span className="mr-1">{model.modelName}</span>
-                              {model.pricing && (
-                                <IconInfoCircle
-                                  size={14}
-                                  className="opacity-50"
-                                />
-                              )}
-                            </Label>
-                          }
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </ScrollArea>
-    </div>
+    </>
   )
 }

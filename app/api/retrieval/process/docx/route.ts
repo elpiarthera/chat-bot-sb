@@ -1,4 +1,7 @@
-import { processDocX } from "@/lib/retrieval/processing"
+import {
+  processDocX,
+  processWithUnstructured
+} from "@/lib/retrieval/processing"
 import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { Database } from "@/supabase/types"
 import { FileItemChunk } from "@/types"
@@ -33,14 +36,49 @@ export async function POST(req: Request) {
 
     let chunks: FileItemChunk[] = []
 
-    switch (fileExtension) {
-      case "docx":
-        chunks = await processDocX(text)
-        break
-      default:
-        return new NextResponse("Unsupported file type", {
-          status: 400
+    // Check if Unstructured API key is available
+    const { data: settings } = await supabaseAdmin
+      .from("settings")
+      .select("unstructured_api_key")
+      .eq("user_id", profile.user_id)
+      .single()
+
+    const useUnstructured =
+      settings?.unstructured_api_key && fileExtension === "docx"
+
+    if (useUnstructured) {
+      try {
+        console.log("Processing DOCX file with Unstructured API")
+        // Convert text to blob for Unstructured API
+        const textEncoder = new TextEncoder()
+        const encodedText = textEncoder.encode(text)
+        const blob = new Blob([encodedText], {
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         })
+
+        chunks = await processWithUnstructured(
+          blob,
+          fileExtension,
+          profile.user_id
+        )
+      } catch (unstructuredError) {
+        console.error(
+          "Unstructured processing failed, falling back to standard processing:",
+          unstructuredError
+        )
+        // Fall back to standard processing
+        chunks = await processDocX(text)
+      }
+    } else {
+      switch (fileExtension) {
+        case "docx":
+          chunks = await processDocX(text)
+          break
+        default:
+          return new NextResponse("Unsupported file type", {
+            status: 400
+          })
+      }
     }
 
     let embeddings: any = []
@@ -85,7 +123,6 @@ export async function POST(req: Request) {
     await supabaseAdmin.from("file_items").upsert(file_items)
 
     const totalTokens = file_items.reduce((acc, item) => acc + item.tokens, 0)
-
     await supabaseAdmin
       .from("files")
       .update({ tokens: totalTokens })

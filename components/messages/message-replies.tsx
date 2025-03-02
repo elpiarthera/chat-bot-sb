@@ -9,7 +9,9 @@ import {
   SheetTrigger
 } from "../ui/sheet"
 import { WithTooltip } from "../ui/with-tooltip"
-import { MESSAGE_ICON_SIZE } from "./message-actions"
+
+// Define icon size locally instead of importing from message-actions
+const MESSAGE_ICON_SIZE = 18
 
 interface MessageRepliesProps {}
 

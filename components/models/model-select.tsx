@@ -1,9 +1,16 @@
 "use client"
 
 import { ChatbotUIContext } from "@/context/context"
-import { LLM, LLMID, ModelProvider } from "@/types"
 import { IconCheck, IconChevronDown } from "@tabler/icons-react"
-import { FC, useContext, useEffect, useRef, useState, useMemo } from "react"
+import {
+  FC,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  ReactNode
+} from "react"
 import { Button } from "../ui/button"
 import {
   DropdownMenu,
@@ -14,6 +21,15 @@ import { Input } from "../ui/input"
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs"
 import { ModelIcon } from "./model-icon"
 import { ModelOption } from "./model-option"
+import { LLMID, LLM as ImportedLLM } from "@/types/llms"
+import { ModelProvider } from "@/types/models"
+
+// Alias the imported LLM type to use it in this component
+export type { LLMID } from "@/types/llms"
+export type { ModelProvider } from "@/types/models"
+
+// Use the imported LLM interface
+export type LLM = ImportedLLM
 
 interface ModelSelectProps {
   selectedModelId: string
@@ -25,16 +41,33 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   selectedModelId,
   onSelectModel,
   showAllModels = false // Default to showing only active workspace models
-}) => {
+}): ReactNode => {
+  // Use type assertion to access properties that exist in the context
+  const context = useContext(ChatbotUIContext) as any
+  const profile = context.profile
+
+  // Wrap model variables in useMemo to avoid dependency changes on every render
+  const modelVariables = useMemo(() => {
+    return {
+      models: context.models || [],
+      availableHostedModels: context.availableHostedModels || [],
+      availableLocalModels: context.availableLocalModels || [],
+      availableOpenRouterModels: context.availableOpenRouterModels || []
+    }
+  }, [
+    context.models,
+    context.availableHostedModels,
+    context.availableLocalModels,
+    context.availableOpenRouterModels
+  ])
+
   const {
-    profile,
     models,
     availableHostedModels,
     availableLocalModels,
-    availableOpenRouterModels,
-    selectedWorkspace
-  } = useContext(ChatbotUIContext)
-
+    availableOpenRouterModels
+  } = modelVariables
+  const selectedWorkspace = context.selectedWorkspace
   const inputRef = useRef<HTMLInputElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
 
@@ -206,9 +239,9 @@ export const ModelSelect: FC<ModelSelectProps> = ({
     if (isOpen) {
       setTimeout(() => {
         inputRef.current?.focus()
-      }, 100) // FIX: hacky
+      }, 100) // Small delay to ensure the input is rendered
     }
-  }, [isOpen])
+  }, [isOpen, inputRef])
 
   const handleSelectModel = (modelId: LLMID) => {
     onSelectModel(modelId)
@@ -236,7 +269,7 @@ export const ModelSelect: FC<ModelSelectProps> = ({
   return (
     <DropdownMenu
       open={isOpen}
-      onOpenChange={isOpen => {
+      onOpenChange={(isOpen: boolean) => {
         setIsOpen(isOpen)
         setSearch("")
       }}
@@ -248,29 +281,32 @@ export const ModelSelect: FC<ModelSelectProps> = ({
       >
         {!allModelsData.hasModels ? (
           <div className="rounded text-sm font-bold">
-            Unlock models by entering API keys in your profile settings.
+            No models available. Please check your API keys.
           </div>
         ) : (
           <Button
             ref={triggerRef}
-            className="flex items-center justify-between"
+            className="flex w-full items-center justify-between"
             variant="ghost"
           >
             <div className="flex items-center">
-              {allModelsData.selectedModel ? (
-                <>
-                  <ModelIcon
-                    provider={allModelsData.selectedModel?.provider}
-                    width={26}
-                    height={26}
-                  />
-                  <div className="ml-2 flex items-center">
-                    {allModelsData.selectedModel?.modelName}
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center">Select a model</div>
+              {allModelsData.selectedModel && (
+                <ModelIcon
+                  provider={allModelsData.selectedModel.provider}
+                  width={24}
+                  height={24}
+                />
               )}
+
+              <div className="ml-2 flex items-center">
+                {allModelsData.selectedModel ? (
+                  <div className="text-base font-medium">
+                    {allModelsData.selectedModel.modelName}
+                  </div>
+                ) : (
+                  <div className="text-base font-medium">Select a model</div>
+                )}
+              </div>
             </div>
 
             <IconChevronDown />
@@ -279,83 +315,205 @@ export const ModelSelect: FC<ModelSelectProps> = ({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="space-y-2 overflow-auto p-2"
-        style={{ width: triggerRef.current?.offsetWidth }}
+        className="bg-background max-h-[calc(var(--radix-popover-content-available-height)-2rem)] w-[var(--radix-popover-trigger-width)] overflow-auto p-2"
         align="start"
       >
-        {allModelsData.hasLocalModels && (
-          <Tabs value={tab} onValueChange={(value: any) => setTab(value)}>
-            <TabsList defaultValue="hosted" className="grid grid-cols-2">
+        <div className="mb-2 flex items-center gap-2">
+          <Input
+            ref={inputRef}
+            className="h-8 flex-1"
+            placeholder="Search models..."
+            value={search}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setSearch(e.target.value)
+            }
+          />
+
+          <Tabs
+            value={tab}
+            onValueChange={(value: string) =>
+              setTab(value as "hosted" | "local")
+            }
+          >
+            <TabsList className="h-8 grid-cols-2">
               <TabsTrigger value="hosted">Hosted</TabsTrigger>
               <TabsTrigger value="local">Local</TabsTrigger>
             </TabsList>
           </Tabs>
-        )}
+        </div>
 
-        <Input
-          ref={inputRef}
-          className="w-full"
-          placeholder="Search models..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <div className="mt-4">
+          {tab === "hosted" && (
+            <div className="space-y-4">
+              {/* Custom Models */}
+              {allModelsData.groupedModels["custom"] &&
+                allModelsData.groupedModels["custom"].length > 0 && (
+                  <div>
+                    <div className="mb-2 text-xs font-bold">CUSTOM MODELS</div>
 
-        <div className="max-h-[300px] overflow-auto">
-          {Object.entries(allModelsData.groupedModels).map(
-            ([provider, providerModels]) => {
-              // Safe filtering with additional checks
-              const filteredModels = providerModels
-                .filter(model => {
-                  if (!model) return false
-                  if (tab === "hosted") return model.provider !== "ollama"
-                  if (tab === "local") return model.provider === "ollama"
-                  return true
-                })
-                .filter(model => {
-                  if (!model || !model.modelName) return false
-                  return model.modelName
-                    .toLowerCase()
-                    .includes(search.toLowerCase())
-                })
-                .sort((a, b) => {
-                  if (!a.modelName || !b.modelName) return 0
-                  return a.modelName.localeCompare(b.modelName)
-                })
-
-              if (filteredModels.length === 0) return null
-
-              return (
-                <div key={provider}>
-                  <div className="mb-1 ml-2 text-xs font-bold tracking-wide opacity-50">
-                    {provider === "openai" && profile.use_azure_openai
-                      ? "AZURE OPENAI"
-                      : provider.toLocaleUpperCase()}
-                  </div>
-
-                  <div className="mb-4">
-                    {filteredModels.map(model => {
-                      if (!model || !model.modelId) return null
-
-                      return (
-                        <div
-                          key={model.modelId}
-                          className="flex items-center space-x-1"
-                        >
-                          {selectedModelId === model.modelId && (
-                            <IconCheck className="ml-2" size={32} />
-                          )}
-
+                    <div className="space-y-1">
+                      {allModelsData.groupedModels["custom"]
+                        .filter(model =>
+                          model.modelName
+                            .toLowerCase()
+                            .includes(search.toLowerCase())
+                        )
+                        .map(model => (
                           <ModelOption
+                            key={model.modelId}
                             model={model}
                             onSelect={() => handleSelectModel(model.modelId)}
                           />
-                        </div>
-                      )
-                    })}
+                        ))}
+                    </div>
                   </div>
+                )}
+
+              {/* OpenAI Models */}
+              {allModelsData.groupedModels["openai"] &&
+                allModelsData.groupedModels["openai"].length > 0 && (
+                  <div>
+                    <div className="mb-2 text-xs font-bold">OPENAI MODELS</div>
+
+                    <div className="space-y-1">
+                      {allModelsData.groupedModels["openai"]
+                        .filter(model =>
+                          model.modelName
+                            .toLowerCase()
+                            .includes(search.toLowerCase())
+                        )
+                        .map(model => (
+                          <ModelOption
+                            key={model.modelId}
+                            model={model}
+                            onSelect={() => handleSelectModel(model.modelId)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Anthropic Models */}
+              {allModelsData.groupedModels["anthropic"] &&
+                allModelsData.groupedModels["anthropic"].length > 0 && (
+                  <div>
+                    <div className="mb-2 text-xs font-bold">
+                      ANTHROPIC MODELS
+                    </div>
+
+                    <div className="space-y-1">
+                      {allModelsData.groupedModels["anthropic"]
+                        .filter(model =>
+                          model.modelName
+                            .toLowerCase()
+                            .includes(search.toLowerCase())
+                        )
+                        .map(model => (
+                          <ModelOption
+                            key={model.modelId}
+                            model={model}
+                            onSelect={() => handleSelectModel(model.modelId)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Google Models */}
+              {allModelsData.groupedModels["google"] &&
+                allModelsData.groupedModels["google"].length > 0 && (
+                  <div>
+                    <div className="mb-2 text-xs font-bold">GOOGLE MODELS</div>
+                    <div className="space-y-1">
+                      {allModelsData.groupedModels["google"]
+                        .filter(model =>
+                          model.modelName
+                            .toLowerCase()
+                            .includes(search.toLowerCase())
+                        )
+                        .map(model => (
+                          <ModelOption
+                            key={model.modelId}
+                            model={model}
+                            onSelect={() => handleSelectModel(model.modelId)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Mistral Models */}
+              {allModelsData.groupedModels["mistral"] &&
+                allModelsData.groupedModels["mistral"].length > 0 && (
+                  <div>
+                    <div className="mb-2 text-xs font-bold">MISTRAL MODELS</div>
+
+                    <div className="space-y-1">
+                      {allModelsData.groupedModels["mistral"]
+                        .filter(model =>
+                          model.modelName
+                            .toLowerCase()
+                            .includes(search.toLowerCase())
+                        )
+                        .map(model => (
+                          <ModelOption
+                            key={model.modelId}
+                            model={model}
+                            onSelect={() => handleSelectModel(model.modelId)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* OpenRouter Models */}
+              {allModelsData.groupedModels["openrouter"] &&
+                allModelsData.groupedModels["openrouter"].length > 0 && (
+                  <div>
+                    <div className="mb-2 text-xs font-bold">
+                      OPENROUTER MODELS
+                    </div>
+
+                    <div className="space-y-1">
+                      {allModelsData.groupedModels["openrouter"]
+                        .filter(model =>
+                          model.modelName
+                            .toLowerCase()
+                            .includes(search.toLowerCase())
+                        )
+                        .map(model => (
+                          <ModelOption
+                            key={model.modelId}
+                            model={model}
+                            onSelect={() => handleSelectModel(model.modelId)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                )}
+            </div>
+          )}
+
+          {tab === "local" && (
+            <div className="space-y-4">
+              {allModelsData.hasLocalModels ? (
+                allModelsData.groupedModels["ollama"]
+                  ?.filter(model =>
+                    model.modelName.toLowerCase().includes(search.toLowerCase())
+                  )
+                  .map(model => (
+                    <ModelOption
+                      key={model.modelId}
+                      model={model}
+                      onSelect={() => handleSelectModel(model.modelId)}
+                    />
+                  ))
+              ) : (
+                <div className="text-muted-foreground text-center text-sm">
+                  No local models available.
                 </div>
-              )
-            }
+              )}
+            </div>
           )}
         </div>
       </DropdownMenuContent>

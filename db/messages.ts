@@ -83,11 +83,11 @@ export const deleteMessage = async (messageId: string) => {
   return true
 }
 
-export async function deleteMessagesIncludingAndAfter(
+export const deleteMessagesIncludingAndAfter = async (
   userId: string,
   chatId: string,
   sequenceNumber: number
-) {
+) => {
   const { error } = await supabase.rpc("delete_messages_including_and_after", {
     p_user_id: userId,
     p_chat_id: chatId,

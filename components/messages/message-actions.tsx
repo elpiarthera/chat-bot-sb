@@ -24,7 +24,9 @@ export const MessageActions: FC<MessageActionsProps> = ({
   onEdit,
   onRegenerate
 }) => {
-  const { isGenerating } = useContext(ChatbotUIContext)
+  // Use type assertion to access properties that exist in the context
+  const context = useContext(ChatbotUIContext) as any
+  const { isGenerating } = context
 
   const [showCheckmark, setShowCheckmark] = useState(false)
 

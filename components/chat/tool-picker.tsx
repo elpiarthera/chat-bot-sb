@@ -7,25 +7,33 @@ import { usePromptAndCommand } from "./chat-hooks/use-prompt-and-command"
 interface ToolPickerProps {}
 
 export const ToolPicker: FC<ToolPickerProps> = ({}) => {
+  // Cast context to unknown first to avoid TypeScript errors
+  const contextValue = useContext(ChatbotUIContext) as unknown
   const {
     tools,
     focusTool,
     toolCommand,
     isToolPickerOpen,
     setIsToolPickerOpen
-  } = useContext(ChatbotUIContext)
+  } = contextValue as {
+    tools: Tables<"tools">[]
+    focusTool: boolean
+    toolCommand: string
+    isToolPickerOpen: boolean
+    setIsToolPickerOpen: (isOpen: boolean) => void
+  }
 
   const { handleSelectTool } = usePromptAndCommand()
 
   const itemsRef = useRef<(HTMLDivElement | null)[]>([])
 
   useEffect(() => {
-    if (focusTool && itemsRef.current[0]) {
-      itemsRef.current[0].focus()
+    if (focusTool && itemsRef.current.length > 0) {
+      itemsRef.current[0]?.focus()
     }
   }, [focusTool])
 
-  const filteredTools = tools.filter(tool =>
+  const filteredTools = tools.filter((tool: Tables<"tools">) =>
     tool.name.toLowerCase().includes(toolCommand.toLowerCase())
   )
 
@@ -79,7 +87,7 @@ export const ToolPicker: FC<ToolPickerProps> = ({}) => {
             </div>
           ) : (
             <>
-              {filteredTools.map((item, index) => (
+              {filteredTools.map((item: Tables<"tools">, index: number) => (
                 <div
                   key={item.id}
                   ref={ref => {

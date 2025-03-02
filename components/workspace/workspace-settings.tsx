@@ -30,10 +30,14 @@ import { DeleteWorkspace } from "./delete-workspace"
 import { updateWorkspaceActiveModels } from "@/db/workspace-active-models"
 import { WorkspaceActiveModels } from "./workspace-active-models"
 import { ShareWorkspaceModal } from "./share-workspace-modal"
+import { Tables } from "@/supabase/types"
+import { WorkspaceImage } from "@/types"
 
 interface WorkspaceSettingsProps {}
 
 export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
+  // Use type assertion to access properties that TypeScript doesn't recognize
+  const context = useContext(ChatbotUIContext)
   const {
     profile,
     selectedWorkspace,
@@ -42,7 +46,7 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
     setChatSettings,
     workspaceImages,
     setWorkspaceImages
-  } = useContext(ChatbotUIContext)
+  } = context as any
 
   const buttonRef = useRef<HTMLButtonElement>(null)
 
@@ -80,11 +84,11 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
   useEffect(() => {
     const workspaceImage =
       workspaceImages.find(
-        image => image.path === selectedWorkspace?.image_path
+        (image: WorkspaceImage) => image.path === selectedWorkspace?.image_path
       )?.base64 || ""
 
     setImageLink(workspaceImage)
-  }, [workspaceImages])
+  }, [workspaceImages, selectedWorkspace])
 
   const handleSave = async () => {
     if (!selectedWorkspace) return
@@ -100,8 +104,7 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
         const response = await fetch(url)
         const blob = await response.blob()
         const base64 = await convertBlobToBase64(blob)
-
-        setWorkspaceImages(prev => [
+        setWorkspaceImages((prev: WorkspaceImage[]) => [
           ...prev,
           {
             workspaceId: selectedWorkspace.id,
@@ -202,8 +205,8 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
 
     setIsOpen(false)
     setSelectedWorkspace(updatedWorkspace)
-    setWorkspaces(workspaces => {
-      return workspaces.map(workspace => {
+    setWorkspaces((workspaces: Tables<"workspaces">[]) => {
+      return workspaces.map((workspace: Tables<"workspaces">) => {
         if (workspace.id === selectedWorkspace.id) {
           return updatedWorkspace
         }
@@ -224,171 +227,150 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
   if (!selectedWorkspace || !profile) return null
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <IconSettings size={20} />
-        </Button>
-      </SheetTrigger>
+    <>
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <IconSettings size={20} />
+          </Button>
+        </SheetTrigger>
 
-      <SheetContent className="flex w-full flex-col sm:max-w-md">
-        <SheetHeader className="flex flex-row items-center justify-between">
-          <SheetTitle className="flex">Workspace Settings</SheetTitle>
+        <SheetContent className="flex w-full flex-col sm:max-w-md">
+          <SheetHeader className="flex flex-row items-center justify-between">
+            <SheetTitle className="flex">Workspace Settings</SheetTitle>
 
-          {selectedWorkspace?.is_home ? (
-            <WithTooltip
-              display={<div>This is your home workspace</div>}
-              trigger={
-                <div className="flex cursor-default items-center px-1">
-                  <IconHome size={20} className="text-blue-500" />
-                </div>
-              }
-            />
-          ) : (
-            <DeleteWorkspace
-              workspace={selectedWorkspace}
-              onDelete={() => setIsOpen(false)}
-            />
-          )}
-        </SheetHeader>
-
-        <div className="mt-4 flex items-center justify-end gap-2">
-          {selectedWorkspace && (
-            <Button
-              onClick={() => setIsShareOpen(true)}
-              variant="outline"
-              className="flex items-center gap-1"
-            >
-              <IconShare size={16} />
-              Share
-            </Button>
-          )}
-        </div>
-
-        {selectedWorkspace && (
-          <ShareWorkspaceModal
-            workspace={selectedWorkspace}
-            isOpen={isShareOpen}
-            onOpenChange={setIsShareOpen}
-          />
-        )}
-
-        <div className="grow overflow-auto">
-          <SheetHeader>
-            <SheetTitle className="flex items-center justify-between">
-              Workspace Settings
-              {selectedWorkspace?.is_home && <IconHome />}
-            </SheetTitle>
-
-            {selectedWorkspace?.is_home && (
-              <div className="text-sm font-light">
-                This is your home workspace for personal use.
+            {selectedWorkspace?.is_home ? (
+              <div className="flex cursor-default items-center px-1">
+                <IconHome size={20} className="text-blue-500" />
               </div>
-            )}
-          </SheetHeader>
-
-          <Tabs defaultValue="main">
-            <TabsList className="mt-4 grid w-full grid-cols-3">
-              <TabsTrigger value="main">Main</TabsTrigger>
-              <TabsTrigger value="defaults">Defaults</TabsTrigger>
-              <TabsTrigger value="models">Models</TabsTrigger>
-            </TabsList>
-
-            <TabsContent className="mt-4 space-y-4" value="main">
-              <>
-                <div className="space-y-1">
-                  <Label>Workspace Name</Label>
-
-                  <Input
-                    placeholder="Name..."
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                  />
-                </div>
-
-                {/* <div className="space-y-1">
-                  <Label>Description</Label>
-
-                  <Input
-                    placeholder="Description... (optional)"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                  />
-                </div> */}
-
-                <div className="space-y-1">
-                  <Label>Workspace Image</Label>
-
-                  <ImagePicker
-                    src={imageLink}
-                    image={selectedImage}
-                    onSrcChange={setImageLink}
-                    onImageChange={setSelectedImage}
-                    width={50}
-                    height={50}
-                  />
-                </div>
-              </>
-
-              <div className="space-y-1">
-                <Label>
-                  How would you like the AI to respond in this workspace?
-                </Label>
-
-                <TextareaAutosize
-                  placeholder="Instructions... (optional)"
-                  value={instructions}
-                  onValueChange={setInstructions}
-                  minRows={5}
-                  maxRows={10}
-                  maxLength={1500}
-                />
-
-                <LimitDisplay
-                  used={instructions.length}
-                  limit={WORKSPACE_INSTRUCTIONS_MAX}
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent className="mt-5" value="defaults">
-              <div className="mb-4 text-sm">
-                These are the settings your workspace begins with when selected.
-              </div>
-
-              <ChatSettingsForm
-                chatSettings={defaultChatSettings as any}
-                onChangeChatSettings={setDefaultChatSettings}
-              />
-            </TabsContent>
-
-            <TabsContent className="mt-5" value="models">
-              <div className="mb-4 text-sm">
-                Select which models should be available in this workspace.
-              </div>
-
-              {selectedWorkspace && (
-                <WorkspaceActiveModels
-                  workspaceId={selectedWorkspace.id}
-                  onActiveModelsChange={setActiveModels}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        <div className="mt-6 flex justify-between">
-          <div>
-            {!selectedWorkspace.is_home && (
+            ) : (
               <DeleteWorkspace
                 workspace={selectedWorkspace}
                 onDelete={() => setIsOpen(false)}
               />
             )}
+          </SheetHeader>
+
+          <div className="mt-4 flex items-center justify-end gap-2">
+            {selectedWorkspace && (
+              <Button
+                onClick={() => setIsShareOpen(true)}
+                variant="outline"
+                className="flex items-center gap-1"
+              >
+                <IconShare size={16} />
+                Share
+              </Button>
+            )}
           </div>
 
-          <div className="space-x-2">
-            <Button variant="ghost" onClick={() => setIsOpen(false)}>
+          {selectedWorkspace && (
+            <ShareWorkspaceModal
+              workspace={selectedWorkspace}
+              isOpen={isShareOpen}
+              onOpenChange={setIsShareOpen}
+            />
+          )}
+
+          <div className="grow overflow-auto">
+            <Tabs defaultValue="general" className="mt-6">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="models">Models</TabsTrigger>
+              </TabsList>
+
+              <TabsContent
+                value="general"
+                className="flex flex-col gap-4 py-4"
+                onKeyDown={handleKeyDown}
+              >
+                <div className="flex flex-col gap-2">
+                  <Label>Name</Label>
+
+                  <Input
+                    placeholder="Workspace name..."
+                    value={name}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setName(e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label>Image</Label>
+
+                  <ImagePicker
+                    src={imageLink}
+                    image={selectedImage}
+                    onImageChange={setSelectedImage}
+                    onSrcChange={setImageLink}
+                    width={100}
+                    height={100}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label>Description</Label>
+
+                  <Input
+                    placeholder="Workspace description..."
+                    value={description}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      setDescription(e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <Label>Instructions</Label>
+
+                    <LimitDisplay
+                      used={instructions.length}
+                      limit={WORKSPACE_INSTRUCTIONS_MAX}
+                    />
+                  </div>
+
+                  <TextareaAutosize
+                    placeholder="Workspace instructions..."
+                    value={instructions}
+                    onValueChange={setInstructions}
+                    maxLength={WORKSPACE_INSTRUCTIONS_MAX}
+                    className="nodrag flex max-h-[300px] min-h-[100px] w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label>Default Chat Settings</Label>
+
+                  <ChatSettingsForm
+                    chatSettings={defaultChatSettings as any}
+                    onChangeChatSettings={setDefaultChatSettings}
+                    useAdvancedDropdown={true}
+                    showTooltip={true}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent
+                value="models"
+                className="flex flex-col gap-4 py-4"
+                onKeyDown={handleKeyDown}
+              >
+                <div className="flex flex-col gap-2">
+                  <Label>Active Models</Label>
+
+                  <WorkspaceActiveModels
+                    workspaceId={selectedWorkspace.id}
+                    onActiveModelsChange={setActiveModels}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          <div className="mt-auto flex justify-end gap-2 pt-4">
+            <Button variant="outline" onClick={() => setIsOpen(false)}>
               Cancel
             </Button>
 
@@ -396,8 +378,8 @@ export const WorkspaceSettings: FC<WorkspaceSettingsProps> = ({}) => {
               Save
             </Button>
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }

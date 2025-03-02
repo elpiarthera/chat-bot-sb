@@ -10,7 +10,6 @@ const useHotkey = (key: string, callback: () => void): void => {
     }
 
     window.addEventListener("keydown", handleKeyDown)
-
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
     }

@@ -1,6 +1,5 @@
 // Inspired by react-hot-toast library
 import * as React from "react"
-
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
@@ -21,7 +20,6 @@ const actionTypes = {
 } as const
 
 let count = 0
-
 function genId() {
   count = (count + 1) % Number.MAX_VALUE
   return count.toString()
@@ -52,7 +50,6 @@ interface State {
 }
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
-
 const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
     return
@@ -139,7 +136,6 @@ type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
   const id = genId()
-
   const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",
@@ -153,7 +149,7 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
-      onOpenChange: open => {
+      onOpenChange: (open: boolean) => {
         if (!open) dismiss()
       }
     }

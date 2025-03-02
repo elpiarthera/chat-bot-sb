@@ -2,7 +2,6 @@ import { checkApiKey, getServerProfile } from "@/lib/server/server-chat-helpers"
 import { ChatSettings } from "@/types"
 import OpenAI from "openai"
 import { ChatCompletionCreateParamsBase } from "openai/resources/chat/completions.mjs"
-
 export const runtime = "edge"
 
 export async function POST(request: Request) {
@@ -14,7 +13,6 @@ export async function POST(request: Request) {
 
   try {
     const profile = await getServerProfile()
-
     checkApiKey(profile.openai_api_key, "OpenAI")
 
     const openai = new OpenAI({
@@ -30,7 +28,7 @@ export async function POST(request: Request) {
         chatSettings.model === "gpt-4-vision-preview" ||
         chatSettings.model === "gpt-4o"
           ? 4096
-          : null, // TODO: Fix
+          : null,
       stream: true
     })
 

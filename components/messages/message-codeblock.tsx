@@ -5,16 +5,16 @@ import { FC, memo } from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 import { oneDark } from "react-syntax-highlighter/dist/cjs/styles/prism"
 
-interface MessageCodeBlockProps {
+export interface MessageCodeBlockProps {
   language: string
   value: string
 }
 
-interface languageMap {
+interface LanguageMap {
   [key: string]: string | undefined
 }
 
-export const programmingLanguages: languageMap = {
+export const programmingLanguages: LanguageMap = {
   javascript: ".js",
   python: ".py",
   java: ".java",

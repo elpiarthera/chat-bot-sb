@@ -1,159 +1,140 @@
 import { ChatbotUIContext } from "@/context/context"
+import { getFileFromStorage } from "@/db/storage/files"
 import { Tables } from "@/supabase/types"
-import { IconBooks } from "@tabler/icons-react"
-import { FC, useContext, useEffect, useRef } from "react"
-import { FileIcon } from "../ui/file-icon"
+import { FC, useContext, useEffect, useState } from "react"
+import { Input } from "../ui/input"
+import { Label } from "../ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs"
 
 interface FilePickerProps {
-  isOpen: boolean
-  searchQuery: string
-  onOpenChange: (isOpen: boolean) => void
-  selectedFileIds: string[]
-  selectedCollectionIds: string[]
+  selectedFile: Tables<"files"> | null
   onSelectFile: (file: Tables<"files">) => void
-  onSelectCollection: (collection: Tables<"collections">) => void
-  isFocused: boolean
+}
+
+// Extend the Tables<"files"> type to include collection_id
+interface FileWithCollection extends Tables<"files"> {
+  collection_id?: string
 }
 
 export const FilePicker: FC<FilePickerProps> = ({
-  isOpen,
-  searchQuery,
-  onOpenChange,
-  selectedFileIds,
-  selectedCollectionIds,
-  onSelectFile,
-  onSelectCollection,
-  isFocused
+  selectedFile,
+  onSelectFile
 }) => {
-  const { files, collections, setIsFilePickerOpen } =
-    useContext(ChatbotUIContext)
+  const { profile, files, collections } = useContext(ChatbotUIContext) as {
+    profile: Tables<"profiles">
+    files: FileWithCollection[]
+    collections: Tables<"collections">[]
+  }
 
-  const itemsRef = useRef<(HTMLDivElement | null)[]>([])
+  const [search, setSearch] = useState("")
+  const [filteredFiles, setFilteredFiles] = useState<FileWithCollection[]>([])
+  const [filteredCollections, setFilteredCollections] = useState<
+    Tables<"collections">[]
+  >([])
 
   useEffect(() => {
-    if (isFocused && itemsRef.current[0]) {
-      itemsRef.current[0].focus()
+    if (!search) {
+      setFilteredFiles(files)
+      setFilteredCollections(collections)
+      return
     }
-  }, [isFocused])
 
-  const query = searchQuery || ""
+    const lowerCaseSearch = search.toLowerCase()
 
-  const filteredFiles = files.filter(
-    file =>
-      file.name.toLowerCase().includes(query.toLowerCase()) &&
-      !selectedFileIds.includes(file.id)
-  )
+    const filteredFiles = files.filter(file =>
+      file.name.toLowerCase().includes(lowerCaseSearch)
+    )
 
-  const filteredCollections = collections.filter(
-    collection =>
-      collection.name.toLowerCase().includes(query.toLowerCase()) &&
-      !selectedCollectionIds.includes(collection.id)
-  )
+    const filteredCollections = collections.filter(collection =>
+      collection.name.toLowerCase().includes(lowerCaseSearch)
+    )
 
-  const handleOpenChange = (isOpen: boolean) => {
-    onOpenChange(isOpen)
-  }
+    setFilteredFiles(filteredFiles)
+    setFilteredCollections(filteredCollections)
+  }, [search, files, collections])
 
-  const handleSelectFile = (file: Tables<"files">) => {
+  const handleSelectFile = async (file: FileWithCollection) => {
     onSelectFile(file)
-    handleOpenChange(false)
   }
 
-  const handleSelectCollection = (collection: Tables<"collections">) => {
-    onSelectCollection(collection)
-    handleOpenChange(false)
-  }
+  const handleSelectCollection = async (collection: Tables<"collections">) => {
+    const collectionFiles = files.filter(
+      file => file.collection_id === collection.id
+    )
 
-  const getKeyDownHandler =
-    (index: number, type: "file" | "collection", item: any) =>
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "Escape") {
-        e.preventDefault()
-        setIsFilePickerOpen(false)
-      } else if (e.key === "Backspace") {
-        e.preventDefault()
-      } else if (e.key === "Enter") {
-        e.preventDefault()
-
-        if (type === "file") {
-          handleSelectFile(item)
-        } else {
-          handleSelectCollection(item)
-        }
-      } else if (
-        (e.key === "Tab" || e.key === "ArrowDown") &&
-        !e.shiftKey &&
-        index === filteredFiles.length + filteredCollections.length - 1
-      ) {
-        e.preventDefault()
-        itemsRef.current[0]?.focus()
-      } else if (e.key === "ArrowUp" && !e.shiftKey && index === 0) {
-        e.preventDefault()
-        itemsRef.current[itemsRef.current.length - 1]?.focus()
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault()
-        const prevIndex =
-          index - 1 >= 0 ? index - 1 : itemsRef.current.length - 1
-        itemsRef.current[prevIndex]?.focus()
-      } else if (e.key === "ArrowDown") {
-        e.preventDefault()
-        const nextIndex = index + 1 < itemsRef.current.length ? index + 1 : 0
-        itemsRef.current[nextIndex]?.focus()
-      }
+    if (collectionFiles.length > 0) {
+      onSelectFile(collectionFiles[0])
     }
+  }
+
+  if (!profile) return null
 
   return (
-    <>
-      {isOpen && (
-        <div className="bg-background flex flex-col space-y-1 rounded-xl border-2 p-2 text-sm">
-          {filteredFiles.length === 0 && filteredCollections.length === 0 ? (
-            <div className="text-md flex h-14 cursor-pointer items-center justify-center italic hover:opacity-50">
-              No matching files.
-            </div>
-          ) : (
-            <>
-              {[...filteredFiles, ...filteredCollections].map((item, index) => (
+    <div className="flex flex-col space-y-4">
+      <div className="flex flex-col space-y-2">
+        <Label>Search Files</Label>
+
+        <Input
+          placeholder="Search files..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
+      <Tabs defaultValue="files">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="files">Files</TabsTrigger>
+          <TabsTrigger value="collections">Collections</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="files" className="mt-4">
+          <div className="flex max-h-[300px] flex-col space-y-1 overflow-auto">
+            {filteredFiles.length === 0 ? (
+              <div className="text-muted-foreground p-1 text-sm">
+                No files found.
+              </div>
+            ) : (
+              filteredFiles.map(file => (
                 <div
-                  key={item.id}
-                  ref={ref => {
-                    itemsRef.current[index] = ref
-                  }}
-                  tabIndex={0}
-                  className="hover:bg-accent focus:bg-accent flex cursor-pointer items-center rounded p-2 focus:outline-none"
-                  onClick={() => {
-                    if ("type" in item) {
-                      handleSelectFile(item as Tables<"files">)
-                    } else {
-                      handleSelectCollection(item)
-                    }
-                  }}
-                  onKeyDown={e =>
-                    getKeyDownHandler(
-                      index,
-                      "type" in item ? "file" : "collection",
-                      item
-                    )(e)
-                  }
+                  key={file.id}
+                  className={`hover:bg-accent flex cursor-pointer items-center justify-between rounded-lg p-2 text-sm ${
+                    selectedFile?.id === file.id ? "bg-accent" : ""
+                  }`}
+                  onClick={() => handleSelectFile(file)}
                 >
-                  {"type" in item ? (
-                    <FileIcon type={(item as Tables<"files">).type} size={32} />
-                  ) : (
-                    <IconBooks size={32} />
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <div className="max-w-[200px] truncate">{file.name}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </TabsContent>
 
-                  <div className="ml-3 flex flex-col">
-                    <div className="font-bold">{item.name}</div>
-
-                    <div className="truncate text-sm opacity-80">
-                      {item.description || "No description."}
+        <TabsContent value="collections" className="mt-4">
+          <div className="flex max-h-[300px] flex-col space-y-1 overflow-auto">
+            {filteredCollections.length === 0 ? (
+              <div className="text-muted-foreground p-1 text-sm">
+                No collections found.
+              </div>
+            ) : (
+              filteredCollections.map(collection => (
+                <div
+                  key={collection.id}
+                  className="hover:bg-accent flex cursor-pointer items-center justify-between rounded-lg p-2 text-sm"
+                  onClick={() => handleSelectCollection(collection)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <div className="max-w-[200px] truncate">
+                      {collection.name}
                     </div>
                   </div>
                 </div>
-              ))}
-            </>
-          )}
-        </div>
-      )}
-    </>
+              ))
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }

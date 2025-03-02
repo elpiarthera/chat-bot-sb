@@ -3,7 +3,7 @@ import { createDocXFile, createFile } from "@/db/files"
 import { LLM_LIST } from "@/lib/models/llm/llm-list"
 import { ChatFile } from "@/types"
 import mammoth from "mammoth"
-import { useContext, useEffect, useState } from "react"
+import { useCallback, useContext, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 export const ACCEPTED_FILE_TYPES = [
@@ -14,6 +14,11 @@ export const ACCEPTED_FILE_TYPES = [
   "application/pdf",
   "text/plain"
 ].join(",")
+
+// Extended ChatFile type that includes both the imported type and context type properties
+interface ExtendedChatFile extends ChatFile {
+  url: string
+}
 
 export const useSelectFileHandler = () => {
   const {
@@ -29,14 +34,10 @@ export const useSelectFileHandler = () => {
 
   const [filesToAccept, setFilesToAccept] = useState(ACCEPTED_FILE_TYPES)
 
-  useEffect(() => {
-    handleFilesToAccept()
-  }, [chatSettings?.model])
-
-  const handleFilesToAccept = () => {
+  // Define handleFilesToAccept with useCallback to avoid the dependency cycle
+  const handleFilesToAccept = useCallback(() => {
     const model = chatSettings?.model
     const FULL_MODEL = LLM_LIST.find(llm => llm.modelId === model)
-
     if (!FULL_MODEL) return
 
     // Add Azure OpenAI check
@@ -50,18 +51,19 @@ export const useSelectFileHandler = () => {
         ? `${ACCEPTED_FILE_TYPES},image/*`
         : ACCEPTED_FILE_TYPES
     )
-  }
+  }, [chatSettings?.model, profile?.use_azure_openai])
+
+  useEffect(() => {
+    handleFilesToAccept()
+  }, [handleFilesToAccept])
 
   const handleSelectDeviceFile = async (file: File) => {
     if (!profile || !selectedWorkspace || !chatSettings) return
 
     setShowFilesDisplay(true)
     setUseRetrieval(true)
-
     let simplifiedFileType = file.type.split("/")[1]
-
     let reader = new FileReader()
-
     if (file.type.includes("image")) {
       reader.readAsDataURL(file)
     } else if (ACCEPTED_FILE_TYPES.split(",").includes(file.type)) {
@@ -83,8 +85,9 @@ export const useSelectFileHandler = () => {
           name: file.name,
           type: simplifiedFileType,
           description: file.name,
-          file: file
-        } as ChatFile
+          file: file,
+          url: "" // Add empty url to satisfy the type
+        } as ExtendedChatFile
       ])
 
       // Handle docx files
@@ -112,7 +115,7 @@ export const useSelectFileHandler = () => {
             type: simplifiedFileType
           },
           selectedWorkspace.id,
-          chatSettings.embeddingsProvider
+          chatSettings.embeddingsProvider as "openai" | "local"
         )
 
         setFiles(prev => [...prev, createdFile])
@@ -125,8 +128,9 @@ export const useSelectFileHandler = () => {
                   name: createdFile.name,
                   type: createdFile.type,
                   description: createdFile.name,
-                  file: file
-                } as ChatFile)
+                  file: file,
+                  url: createdFile.file_path || "" // Use file_path as url or empty string
+                } as ExtendedChatFile)
               : item
           )
         )
@@ -149,7 +153,6 @@ export const useSelectFileHandler = () => {
         if (file.type.includes("image")) {
           // Create a temp url for the image file
           const imageUrl = URL.createObjectURL(file)
-
           // This is a temporary image for display purposes in the chat input
           setNewMessageImages(prev => [
             ...prev,
@@ -174,7 +177,7 @@ export const useSelectFileHandler = () => {
               type: simplifiedFileType
             },
             selectedWorkspace.id,
-            chatSettings.embeddingsProvider
+            chatSettings.embeddingsProvider as "openai" | "local"
           )
 
           setFiles(prev => [...prev, createdFile])
@@ -187,8 +190,9 @@ export const useSelectFileHandler = () => {
                     name: createdFile.name,
                     type: createdFile.type,
                     description: createdFile.name,
-                    file: file
-                  } as ChatFile)
+                    file: file,
+                    url: createdFile.file_path || "" // Use file_path as url or empty string
+                  } as ExtendedChatFile)
                 : item
             )
           )

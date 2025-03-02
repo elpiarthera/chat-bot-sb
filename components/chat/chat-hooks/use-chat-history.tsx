@@ -10,8 +10,9 @@ import { useContext, useEffect, useState } from "react"
  *   - setNewMessageContentToNextUserMessage: Sets the new message content to the next user message in the chat history.
  */
 export const useChatHistoryHandler = () => {
-  const { setUserInput, chatMessages, isGenerating } =
-    useContext(ChatbotUIContext)
+  // Use type assertion to access properties that exist in the context
+  const context = useContext(ChatbotUIContext) as any
+  const { setUserInput, chatMessages, isGenerating } = context
   const userRoleString = "user"
 
   const [messageHistoryIndex, setMessageHistoryIndex] = useState<number>(

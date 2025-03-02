@@ -8,13 +8,12 @@ export const processDocX = async (text: string): Promise<FileItemChunk[]> => {
     chunkSize: CHUNK_SIZE,
     chunkOverlap: CHUNK_OVERLAP
   })
-  const splitDocs = await splitter.createDocuments([text])
 
+  const splitDocs = await splitter.createDocuments([text])
   let chunks: FileItemChunk[] = []
 
   for (let i = 0; i < splitDocs.length; i++) {
     const doc = splitDocs[i]
-
     chunks.push({
       content: doc.pageContent,
       tokens: encode(doc.pageContent).length

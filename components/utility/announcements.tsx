@@ -16,41 +16,52 @@ export const Announcements: FC<AnnouncementsProps> = () => {
 
   useEffect(() => {
     // Load announcements from local storage
-    const storedAnnouncements = localStorage.getItem("announcements")
-    let parsedAnnouncements: Announcement[] = []
+    if (typeof window !== "undefined") {
+      const storedAnnouncements = localStorage.getItem("announcements")
+      let parsedAnnouncements: Announcement[] = []
 
-    if (storedAnnouncements) {
-      parsedAnnouncements = JSON.parse(storedAnnouncements)
-    }
-
-    // Filter out announcements that are no longer in state
-    const validAnnouncements = announcements.filter((a: Announcement) =>
-      parsedAnnouncements.find(storedA => storedA.id === a.id)
-    )
-
-    // Add new announcements to the list
-    const newAnnouncements = announcements.filter(
-      (a: Announcement) =>
-        !parsedAnnouncements.find(storedA => storedA.id === a.id)
-    )
-
-    // Combine valid and new announcements
-    const combinedAnnouncements = [...validAnnouncements, ...newAnnouncements]
-
-    // Mark announcements as read if they are marked as read in local storage
-    const updatedAnnouncements = combinedAnnouncements.map(
-      (a: Announcement) => {
-        const storedAnnouncement = parsedAnnouncements.find(
-          (storedA: Announcement) => storedA.id === a.id
-        )
-        return storedAnnouncement?.read ? { ...a, read: true } : a
+      if (storedAnnouncements) {
+        try {
+          parsedAnnouncements = JSON.parse(storedAnnouncements)
+        } catch (error) {
+          console.error("Error parsing announcements from localStorage:", error)
+        }
       }
-    )
 
-    // Update state and local storage
-    setAnnouncements(updatedAnnouncements)
-    localStorage.setItem("announcements", JSON.stringify(updatedAnnouncements))
-  }, [])
+      // Filter out announcements that are no longer in state
+      const validAnnouncements = announcements.filter((a: Announcement) =>
+        parsedAnnouncements.find((storedA: Announcement) => storedA.id === a.id)
+      )
+
+      // Add new announcements to the list
+      const newAnnouncements = announcements.filter(
+        (a: Announcement) =>
+          !parsedAnnouncements.find(
+            (storedA: Announcement) => storedA.id === a.id
+          )
+      )
+
+      // Combine valid and new announcements
+      const combinedAnnouncements = [...validAnnouncements, ...newAnnouncements]
+
+      // Mark announcements as read if they are marked as read in local storage
+      const updatedAnnouncements = combinedAnnouncements.map(
+        (a: Announcement) => {
+          const storedAnnouncement = parsedAnnouncements.find(
+            (storedA: Announcement) => storedA.id === a.id
+          )
+          return storedAnnouncement?.read ? { ...a, read: true } : a
+        }
+      )
+
+      // Update state and local storage
+      setAnnouncements(updatedAnnouncements)
+      localStorage.setItem(
+        "announcements",
+        JSON.stringify(updatedAnnouncements)
+      )
+    }
+  }, [announcements]) // Add announcements as a dependency
 
   const unreadCount = announcements.filter(a => !a.read).length
 
@@ -60,21 +71,36 @@ export const Announcements: FC<AnnouncementsProps> = () => {
       a.id === id ? { ...a, read: true } : a
     )
     setAnnouncements(updatedAnnouncements)
-    localStorage.setItem("announcements", JSON.stringify(updatedAnnouncements))
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        "announcements",
+        JSON.stringify(updatedAnnouncements)
+      )
+    }
   }
 
   const markAllAsRead = () => {
     // Mark all announcements as read in local storage and state
     const updatedAnnouncements = announcements.map(a => ({ ...a, read: true }))
     setAnnouncements(updatedAnnouncements)
-    localStorage.setItem("announcements", JSON.stringify(updatedAnnouncements))
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        "announcements",
+        JSON.stringify(updatedAnnouncements)
+      )
+    }
   }
 
   const markAllAsUnread = () => {
     // Mark all announcements as unread in local storage and state
     const updatedAnnouncements = announcements.map(a => ({ ...a, read: false }))
     setAnnouncements(updatedAnnouncements)
-    localStorage.setItem("announcements", JSON.stringify(updatedAnnouncements))
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        "announcements",
+        JSON.stringify(updatedAnnouncements)
+      )
+    }
   }
 
   return (
@@ -126,7 +152,7 @@ export const Announcements: FC<AnnouncementsProps> = () => {
                         {a.link && (
                           <a href={a.link} target="_blank" rel="noreferrer">
                             <Button className="h-[26px] text-xs" size="sm">
-                              Demo{" "}
+                              Demo
                               <IconExternalLink className="ml-1" size={14} />
                             </Button>
                           </a>

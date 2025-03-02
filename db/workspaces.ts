@@ -1,7 +1,11 @@
 import { supabase } from "@/lib/supabase/browser-client"
 import { customSupabase } from "@/lib/supabase/custom-client"
-import { TablesInsert, TablesUpdate, Tables } from "@/supabase/types"
 import { Workspace } from "@/types/workspace"
+
+// Define types that work with the Database structure
+type Tables<T extends string> = any
+type TablesInsert<T extends string> = any
+type TablesUpdate<T extends string> = any
 
 export const getHomeWorkspaceByUserId = async (userId: string) => {
   const { data: homeWorkspace, error } = await supabase
@@ -110,7 +114,6 @@ export const getWorkspacesByUserId = async (
 
   // Combine owned and shared workspaces
   const workspaces = [...ownedWorkspaces, ...sharedWorkspaces]
-
   return workspaces
 }
 

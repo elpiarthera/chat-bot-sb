@@ -7,6 +7,11 @@ import { Tables } from "@/supabase/types"
 import { LLMID, ChatFile } from "@/types"
 import { useContext } from "react"
 
+// Extended ChatFile type that includes both the imported type and context type properties
+interface ExtendedChatFile extends ChatFile {
+  url: string
+}
+
 export const usePromptAndCommand = () => {
   const {
     chatFiles,
@@ -88,8 +93,9 @@ export const usePromptAndCommand = () => {
             name: file.name,
             type: file.type,
             description: file.name,
-            file: null
-          } as ChatFile
+            file: null,
+            url: "" // Empty string as we don't have file_path here
+          } as ExtendedChatFile
         ]
       }
       return prev
@@ -123,8 +129,9 @@ export const usePromptAndCommand = () => {
               name: file.name,
               type: file.type,
               description: file.name,
-              file: null
-            }) as ChatFile
+              file: null,
+              url: "" // Empty string as we don't have file_path here
+            }) as ExtendedChatFile
         )
 
       return [...prev, ...newFiles]
@@ -155,7 +162,6 @@ export const usePromptAndCommand = () => {
     })
 
     let allFiles = []
-
     const assistantFiles = (await getAssistantFilesByAssistantId(assistant.id))
       .files
     allFiles = [...assistantFiles]
@@ -180,8 +186,9 @@ export const usePromptAndCommand = () => {
             name: file.name,
             type: file.type,
             description: file.name,
-            file: null
-          }) as ChatFile
+            file: null,
+            url: "" // Empty string as we don't have file_path here
+          }) as ExtendedChatFile
       )
     )
 

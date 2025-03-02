@@ -9,16 +9,29 @@ import {
 } from "react"
 
 export const useScroll = () => {
-  const { isGenerating, chatMessages } = useContext(ChatbotUIContext)
+  // Use type assertion to access properties that exist in the context
+  const context = useContext(ChatbotUIContext) as any
+  const { isGenerating, chatMessages } = context
 
   const messagesStartRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const isAutoScrolling = useRef(false)
-
   const [isAtTop, setIsAtTop] = useState(false)
   const [isAtBottom, setIsAtBottom] = useState(true)
   const [userScrolled, setUserScrolled] = useState(false)
   const [isOverflowing, setIsOverflowing] = useState(false)
+
+  const scrollToBottom = useCallback(() => {
+    isAutoScrolling.current = true
+
+    setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "instant" })
+      }
+
+      isAutoScrolling.current = false
+    }, 100)
+  }, [])
 
   useEffect(() => {
     setUserScrolled(false)
@@ -26,13 +39,13 @@ export const useScroll = () => {
     if (!isGenerating && userScrolled) {
       setUserScrolled(false)
     }
-  }, [isGenerating])
+  }, [isGenerating, userScrolled, setUserScrolled])
 
   useEffect(() => {
     if (isGenerating && !userScrolled) {
       scrollToBottom()
     }
-  }, [chatMessages])
+  }, [chatMessages, isGenerating, userScrolled, scrollToBottom])
 
   const handleScroll: UIEventHandler<HTMLDivElement> = useCallback(e => {
     const target = e.target as HTMLDivElement
@@ -58,18 +71,6 @@ export const useScroll = () => {
     if (messagesStartRef.current) {
       messagesStartRef.current.scrollIntoView({ behavior: "instant" })
     }
-  }, [])
-
-  const scrollToBottom = useCallback(() => {
-    isAutoScrolling.current = true
-
-    setTimeout(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "instant" })
-      }
-
-      isAutoScrolling.current = false
-    }, 100)
   }, [])
 
   return {

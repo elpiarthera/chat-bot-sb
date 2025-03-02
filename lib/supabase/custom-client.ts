@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
-import { Database } from "@/supabase/types"
-import { WorkspaceUser } from "@/db/custom-types"
+import { Database } from "../../supabase/types"
+import { WorkspaceUser } from "../../db/custom-types"
 
 // Extend the Database type to include our custom tables
 type ExtendedDatabase = Database & {
@@ -27,7 +27,7 @@ type ExtendedDatabase = Database & {
           }
         ]
       }
-    } & Database["public"]["Tables"]
+    }
   }
 }
 
@@ -35,7 +35,6 @@ type ExtendedDatabase = Database & {
 export const createCustomClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-
   return createClient<ExtendedDatabase>(supabaseUrl, supabaseKey)
 }
 

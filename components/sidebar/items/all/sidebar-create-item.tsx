@@ -26,7 +26,7 @@ import { createTool } from "@/db/tools"
 import { convertBlobToBase64 } from "@/lib/blob-to-b64"
 import { Tables, TablesInsert } from "@/supabase/types"
 import { ContentType } from "@/types"
-import { FC, useContext, useRef, useState } from "react"
+import { FC, ReactNode, useContext, useRef, useState } from "react"
 import { toast } from "sonner"
 
 interface SidebarCreateItemProps {
@@ -45,25 +45,23 @@ export const SidebarCreateItem: FC<SidebarCreateItemProps> = ({
   renderInputs,
   createState,
   isTyping
-}) => {
-  const {
-    selectedWorkspace,
-    setChats,
-    setPresets,
-    setPrompts,
-    setFiles,
-    setCollections,
-    setAssistants,
-    setAssistantImages,
-    setTools,
-    setModels
-  } = useContext(ChatbotUIContext)
-
+}): ReactNode => {
+  const context = useContext(ChatbotUIContext) as any
+  const selectedWorkspace = context.selectedWorkspace
+  const setChats = context.setChats
+  const setPresets = context.setPresets
+  const setPrompts = context.setPrompts
+  const setFiles = context.setFiles
+  const setCollections = context.setCollections
+  const setAssistants = context.setAssistants
+  const setAssistantImages = context.setAssistantImages
+  const setTools = context.setTools
+  const setModels = context.setModels
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   const [creating, setCreating] = useState(false)
 
-  const createFunctions = {
+  const createFunctions: Record<ContentType, any> = {
     chats: createChat,
     presets: createPreset,
     prompts: createPrompt,
@@ -94,11 +92,12 @@ export const SidebarCreateItem: FC<SidebarCreateItemProps> = ({
       const { collectionFiles, ...rest } = createState
 
       const createdCollection = await createCollection(rest, workspaceId)
-
-      const finalCollectionFiles = collectionFiles.map(collectionFile => ({
-        ...collectionFile,
-        collection_id: createdCollection.id
-      }))
+      const finalCollectionFiles = collectionFiles.map(
+        (collectionFile: any) => ({
+          ...collectionFile,
+          collection_id: createdCollection.id
+        })
+      )
 
       await createCollectionFiles(finalCollectionFiles)
 
@@ -116,12 +115,9 @@ export const SidebarCreateItem: FC<SidebarCreateItemProps> = ({
       const { image, files, collections, tools, ...rest } = createState
 
       const createdAssistant = await createAssistant(rest, workspaceId)
-
       let updatedAssistant = createdAssistant
-
       if (image) {
         const filePath = await uploadAssistantImage(createdAssistant, image)
-
         updatedAssistant = await updateAssistant(createdAssistant.id, {
           image_path: filePath
         })
@@ -132,8 +128,7 @@ export const SidebarCreateItem: FC<SidebarCreateItemProps> = ({
           const response = await fetch(url)
           const blob = await response.blob()
           const base64 = await convertBlobToBase64(blob)
-
-          setAssistantImages(prev => [
+          setAssistantImages((prev: any) => [
             ...prev,
             {
               assistantId: updatedAssistant.id,
@@ -145,19 +140,19 @@ export const SidebarCreateItem: FC<SidebarCreateItemProps> = ({
         }
       }
 
-      const assistantFiles = files.map(file => ({
+      const assistantFiles = files.map((file: any) => ({
         user_id: rest.user_id,
         assistant_id: createdAssistant.id,
         file_id: file.id
       }))
 
-      const assistantCollections = collections.map(collection => ({
+      const assistantCollections = collections.map((collection: any) => ({
         user_id: rest.user_id,
         assistant_id: createdAssistant.id,
         collection_id: collection.id
       }))
 
-      const assistantTools = tools.map(tool => ({
+      const assistantTools = tools.map((tool: any) => ({
         user_id: rest.user_id,
         assistant_id: createdAssistant.id,
         tool_id: tool.id
@@ -173,7 +168,7 @@ export const SidebarCreateItem: FC<SidebarCreateItemProps> = ({
     models: createModel
   }
 
-  const stateUpdateFunctions = {
+  const stateUpdateFunctions: Record<ContentType, any> = {
     chats: setChats,
     presets: setPresets,
     prompts: setPrompts,
@@ -191,13 +186,11 @@ export const SidebarCreateItem: FC<SidebarCreateItemProps> = ({
 
       const createFunction = createFunctions[contentType]
       const setStateFunction = stateUpdateFunctions[contentType]
-
       if (!createFunction || !setStateFunction) return
 
       setCreating(true)
 
       const newItem = await createFunction(createState, selectedWorkspace.id)
-
       setStateFunction((prevItems: any) => [...prevItems, newItem])
 
       onOpenChange(false)

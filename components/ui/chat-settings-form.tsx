@@ -3,6 +3,7 @@
 import { ChatbotUIContext } from "@/context/context"
 import { CHAT_SETTING_LIMITS } from "@/lib/chat-setting-limits"
 import { ChatSettings } from "@/types"
+import { LLMID } from "@/types/llms"
 import { IconInfoCircle } from "@tabler/icons-react"
 import { FC, useContext } from "react"
 import { ModelSelect } from "../models/model-select"
@@ -41,11 +42,10 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
     <div className="space-y-3">
       <div className="space-y-1">
         <Label>Model</Label>
-
         <ModelSelect
           selectedModelId={chatSettings.model}
           onSelectModel={model => {
-            onChangeChatSettings({ ...chatSettings, model })
+            onChangeChatSettings({ ...chatSettings, model: model as LLMID })
           }}
           showAllModels={false}
         />
@@ -53,7 +53,6 @@ export const ChatSettingsForm: FC<ChatSettingsFormProps> = ({
 
       <div className="space-y-1">
         <Label>Prompt</Label>
-
         <TextareaAutosize
           className="bg-background border-input w-full rounded-md border-2 p-2"
           placeholder="You are a helpful AI assistant."
@@ -167,12 +166,12 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
         <Checkbox
           id="profile-context"
           checked={chatSettings.includeProfileContext}
-          onCheckedChange={(value: boolean) =>
+          onCheckedChange={(value: boolean) => {
             onChangeChatSettings({
               ...chatSettings,
               includeProfileContext: value
             })
-          }
+          }}
         />
 
         <Label htmlFor="profile-context">Chats Include Profile Context</Label>
@@ -199,12 +198,12 @@ const AdvancedContent: FC<AdvancedContentProps> = ({
         <Checkbox
           id="workspace-instructions"
           checked={chatSettings.includeWorkspaceInstructions}
-          onCheckedChange={(value: boolean) =>
+          onCheckedChange={(value: boolean) => {
             onChangeChatSettings({
               ...chatSettings,
               includeWorkspaceInstructions: value
             })
-          }
+          }}
         />
 
         <Label htmlFor="workspace-instructions">
