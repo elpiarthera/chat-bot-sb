@@ -49,4 +49,8 @@ workbox-*.js.map
 public/worker-*.js
 public/worker-*.js.map
 
+# Documentation
+coding-documentation/
 @coding-documentation/
+/coding-documentation/
+/@coding-documentation/
