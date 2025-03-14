@@ -54,3 +54,9 @@ coding-documentation/
 @coding-documentation/
 /coding-documentation/
 /@coding-documentation/
+@coding-documentation/**/*
+@coding-documentation/**/*.md
+@coding-documentation/**/*.txt
+@coding-documentation/**/*.json
+@coding-documentation/**/*.js
+@coding-documentation/**/*.ts
