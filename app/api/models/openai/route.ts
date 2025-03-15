@@ -19,42 +19,36 @@ export async function GET() {
 
     console.log("🔍 OpenAI models API: Starting request")
 
-    // Create Supabase client for auth using our centralized implementation
+    // Create a Supabase client with cookie auth
     const cookieStore = cookies()
-
-    // Log available cookies for debugging
-    console.log(
-      "🔍 OpenAI models API: Available cookies:",
-      cookieStore
-        .getAll()
-        .map(c => c.name)
-        .join(", ")
-    )
-
     const supabase = createClient(cookieStore)
 
-    // Get the current user
-    const { data: userData, error: userError } = await supabase.auth.getUser()
+    // Get current user session correctly
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
 
-    if (userError) {
-      console.error(
-        "❌ OpenAI models API: Auth error getting user:",
-        userError.message
-      )
-      return NextResponse.json(
-        { error: "Authentication error" },
-        { status: 401 }
+    // For OpenAI API, we'll return default models if not authenticated
+    // instead of a 401 error to be more resilient
+    if (!session || !session.user) {
+      console.log("⚠️ OpenAI models API: No authenticated user found")
+      return new Response(
+        JSON.stringify({
+          models: OPENAI_LLM_LIST.map(model => ({ id: model.modelId })),
+          source: "fallback"
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store, max-age=0"
+          }
+        }
       )
     }
 
-    const user = userData.user
-    if (!user) {
-      console.error("❌ OpenAI models API: No authenticated user found")
-      return NextResponse.json(
-        { error: "Authentication error" },
-        { status: 401 }
-      )
-    }
+    // Use the user from the session object
+    const user = session.user
 
     console.log(`🔍 OpenAI models API: Retrieving profile for user ${user.id}`)
 

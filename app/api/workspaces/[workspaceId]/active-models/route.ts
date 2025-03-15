@@ -26,39 +26,29 @@ export async function GET(
 
     // Create a Supabase client with proper authentication
     const cookieStore = cookies()
-    // Log available cookies
-    console.log(
-      "🔍 Active Models API: Available cookies:",
-      cookieStore
-        .getAll()
-        .map(c => c.name)
-        .join(", ")
-    )
-
-    // Use our centralized client with latest best practices
     const supabase = createClient(cookieStore)
 
-    // Get the authenticated user
+    // Get the authenticated user - improve error handling here
     const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser()
+      data: { session },
+      error: sessionError
+    } = await supabase.auth.getSession()
 
-    if (userError) {
-      console.error("❌ Active Models API: Auth error:", userError.message)
+    if (sessionError) {
       console.error(
-        "❌ Active Models API: Auth error details:",
-        JSON.stringify(userError)
+        "❌ Active Models API: Session error:",
+        sessionError.message
       )
     }
 
-    if (!user) {
-      console.error("❌ Active Models API: No authenticated user found")
-      // Return empty array instead of 401 for GET requests - more forgiving
+    // Instead of returning a 401, return empty data for GET request
+    // This is more resilient for UI rendering and prevents errors
+    if (!session || !session.user) {
+      console.log("⚠️ Active Models API: No authenticated session found")
       return NextResponse.json([])
     }
 
-    console.log(`✅ Active Models API: User authenticated: ${user.id}`)
+    console.log(`✅ Active Models API: User authenticated: ${session.user.id}`)
 
     // Query the active models
     const { data, error } = await supabase
@@ -87,68 +77,32 @@ export async function POST(
 ) {
   try {
     const workspaceId = params.workspaceId
-    console.log(`🔍 Active Models API: Saving for workspace ${workspaceId}`)
+    const { activeModels } = await request.json()
 
     // Create a Supabase client with proper authentication
     const cookieStore = cookies()
-    // Log available cookies for debugging
-    console.log(
-      "🔍 Active Models API (POST): Available cookies:",
-      cookieStore
-        .getAll()
-        .map(c => c.name)
-        .join(", ")
-    )
-
-    // Use our centralized client with latest best practices
     const supabase = createClient(cookieStore)
 
-    // Get the authenticated user
+    // Require authentication for write operations
     const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser()
+      data: { session },
+      error: sessionError
+    } = await supabase.auth.getSession()
 
-    if (userError) {
-      console.error(
-        "❌ Active Models API (POST): Auth error:",
-        userError.message
-      )
-      console.error(
-        "❌ Active Models API (POST): Auth error details:",
-        JSON.stringify(userError)
-      )
-    }
-
-    if (!user) {
-      console.error("❌ Active Models API (POST): No authenticated user found")
-      // For POST, return 401 since we need authentication
+    if (sessionError || !session || !session.user) {
+      console.error("❌ Active Models API: Authentication error")
       return NextResponse.json(
-        { error: "Authentication error" },
+        { error: "Authentication required" },
         { status: 401 }
       )
     }
 
-    console.log(`✅ Active Models API: User authenticated: ${user.id}`)
+    console.log(`✅ Active Models API: User authenticated: ${session.user.id}`)
 
     // Get the request body
-    let activeModels
-    try {
-      const body = await request.json()
-      activeModels = body.activeModels
-      console.log(
-        `🔍 Active Models API: Received ${activeModels?.length || 0} models to save`
-      )
-    } catch (parseError) {
-      console.error(
-        "❌ Active Models API: Error parsing request body:",
-        parseError
-      )
-      return NextResponse.json(
-        { error: "Invalid request format" },
-        { status: 400 }
-      )
-    }
+    console.log(
+      `🔍 Active Models API: Received ${activeModels?.length || 0} models to save`
+    )
 
     // Delete existing models
     console.log("🔍 Active Models API: Deleting existing active models")
@@ -172,7 +126,7 @@ export async function POST(
 
       const modelsToInsert = activeModels.map(
         (model: { modelId: string; provider: string }) => ({
-          user_id: user.id,
+          user_id: session.user.id,
           workspace_id: workspaceId,
           model_id: model.modelId,
           provider: model.provider
@@ -201,9 +155,9 @@ export async function POST(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("❌ Active Models API: Unexpected error:", error)
+    console.error("❌ Active Models API POST error:", error)
     return NextResponse.json(
-      { error: "An unexpected error occurred" },
+      { error: "Failed to update active models" },
       { status: 500 }
     )
   }
