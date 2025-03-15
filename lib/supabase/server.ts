@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
 
 interface CreateClientOptions {
   admin?: boolean
@@ -19,26 +20,17 @@ export const createClient = (
     supabaseKey,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll: () => {
+          return cookieStore.getAll().map(cookie => ({
+            name: cookie.name,
+            value: cookie.value
+          }))
         },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: "", ...options })
-          } catch (error) {
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
-          }
+        setAll: cookies => {
+          // This is handled by middleware in Next.js
+          // This function still needs to be implemented based on Supabase's recommendation
+          // but will be no-op in server components
+          return
         }
       }
     }

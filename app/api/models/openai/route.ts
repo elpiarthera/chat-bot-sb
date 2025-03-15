@@ -4,166 +4,77 @@ import { OPENAI_LLM_LIST } from "@/lib/models/llm/openai-llm-list"
 import OpenAI from "openai"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { NextResponse } from "next/server"
+import { createClient } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 export const revalidate = 0
 
 export async function GET() {
-  console.log("🔍 OpenAI models API: Starting to fetch models")
-
   try {
     // Add isVercel check to the top
     const isVercel = process.env.VERCEL === "1" || process.env.VERCEL === "true"
-    console.log(
-      `🔍 OpenAI models API: Running in ${isVercel ? "Vercel" : "local"} environment`
-    )
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-    // Direct cookie access - simpler approach
+    console.log("🔍 OpenAI models API: Starting request")
+
+    // Create Supabase client for auth using our centralized implementation
     const cookieStore = cookies()
+
+    // Log available cookies for debugging
     console.log(
       "🔍 OpenAI models API: Available cookies:",
       cookieStore
         .getAll()
         .map(c => c.name)
         .join(", ")
-    ) // Log available cookies
-
-    // Ensure Supabase URL and Anon Key are set
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error(
-        "❌ OpenAI models API: Missing Supabase credentials in environment variables"
-      )
-      return new Response(
-        JSON.stringify({
-          error: "Server configuration error",
-          models: OPENAI_LLM_LIST.map(model => ({ id: model.modelId })),
-          source: "fallback"
-        }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json"
-          }
-        }
-      )
-    }
-
-    // Create the server client with robust cookie handling
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        getAll: () => {
-          try {
-            return cookieStore.getAll().map(cookie => ({
-              name: cookie.name,
-              value: cookie.value
-            }))
-          } catch (e) {
-            console.error("❌ OpenAI models API: Error getting cookies:", e)
-            return []
-          }
-        },
-        setAll: cookies => {
-          // This is handled by middleware in Next.js
-          return
-        }
-      }
-    })
-
-    // Try authentication with getUser first (recommended by Supabase)
-    let user = null
-    try {
-      const { data: userData, error: userError } = await supabase.auth.getUser()
-      if (userError) {
-        console.error(
-          "❌ OpenAI models API: Error in getUser:",
-          userError.message
-        )
-      } else if (userData && userData.user) {
-        user = userData.user
-        console.log(
-          `✅ OpenAI models API: User authenticated via getUser: ${user.id}`
-        )
-      }
-    } catch (e) {
-      console.error("❌ OpenAI models API: Exception in getUser:", e)
-    }
-
-    // Fallback to getSession if getUser failed
-    if (!user) {
-      try {
-        const { data: sessionData, error: sessionError } =
-          await supabase.auth.getSession()
-        if (sessionError) {
-          console.error(
-            "❌ OpenAI models API: Error in getSession:",
-            sessionError.message
-          )
-        } else if (
-          sessionData &&
-          sessionData.session &&
-          sessionData.session.user
-        ) {
-          user = sessionData.session.user
-          console.log(
-            `⚠️ OpenAI models API: User authenticated via fallback getSession: ${user.id}`
-          )
-        }
-      } catch (e) {
-        console.error(
-          "❌ OpenAI models API: Exception in getSession fallback:",
-          e
-        )
-      }
-    }
-
-    // Log authentication result
-    console.log(
-      `🔍 OpenAI models API: Authentication result:`,
-      user ? `User authenticated: ${user.id}` : "No user found"
     )
 
-    if (!user) {
-      console.log("❌ OpenAI models API: User not authenticated")
-      return new Response(
-        JSON.stringify({
-          models: OPENAI_LLM_LIST.map(model => ({ id: model.modelId })),
-          source: "fallback"
-        }),
-        {
-          status: 200,
-          headers: {
-            "Content-Type": "application/json",
-            "Cache-Control": "no-store, max-age=0"
-          }
-        }
+    const supabase = createClient(cookieStore)
+
+    // Get the current user
+    const { data: userData, error: userError } = await supabase.auth.getUser()
+
+    if (userError) {
+      console.error(
+        "❌ OpenAI models API: Auth error getting user:",
+        userError.message
+      )
+      return NextResponse.json(
+        { error: "Authentication error" },
+        { status: 401 }
       )
     }
 
-    console.log(`✅ OpenAI models API: User authenticated: ${user.id}`)
+    const user = userData.user
+    if (!user) {
+      console.error("❌ OpenAI models API: No authenticated user found")
+      return NextResponse.json(
+        { error: "Authentication error" },
+        { status: 401 }
+      )
+    }
 
-    // Get the user's profile
     console.log(`🔍 OpenAI models API: Retrieving profile for user ${user.id}`)
 
+    // Get the user's profile to check API key settings
     const profileQuery = supabase
       .from("profiles")
       .select("*")
       .eq("user_id", user.id)
       .single()
 
-    console.log(
-      `🔍 OpenAI models API: Profile query:`,
-      `SELECT * FROM profiles WHERE user_id = '${user.id}'`
-    )
-
     const { data: profile, error: profileError } = await profileQuery
 
     if (profileError) {
       console.error(
-        `❌ OpenAI models API: Error retrieving profile:`,
-        profileError
+        "❌ OpenAI models API: Error retrieving profile:",
+        profileError.message
+      )
+      return NextResponse.json(
+        { error: "Error retrieving user profile" },
+        { status: 500 }
       )
     }
 

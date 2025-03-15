@@ -1,8 +1,8 @@
-import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase/browser-client"
 import { customSupabase } from "@/lib/supabase/custom-client"
+import { createClient } from "@/lib/supabase/server"
 
 export const dynamic = "force-dynamic"
 
@@ -18,19 +18,9 @@ export async function GET(request: Request) {
       )
     }
 
-    // Create a Supabase client using the new approach
+    // Create a server-side Supabase client with auth
     const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          }
-        }
-      }
-    )
+    const supabase = createClient(cookieStore)
 
     // Use raw SQL to get around TypeScript limitations
     const { data, error } = await supabase.rpc("get_shared_workspaces", {

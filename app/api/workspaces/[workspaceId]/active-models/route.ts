@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { Database } from "@/supabase/types"
+import { createClient } from "@/lib/supabase/server"
 
 // Force dynamic to prevent caching issues
 export const dynamic = "force-dynamic"
@@ -35,25 +35,8 @@ export async function GET(
         .join(", ")
     )
 
-    // Update to use getAll and setAll as recommended by Supabase
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => {
-            return cookieStore.getAll().map(cookie => ({
-              name: cookie.name,
-              value: cookie.value
-            }))
-          },
-          setAll: cookies => {
-            // This is handled by middleware in Next.js
-            return
-          }
-        }
-      }
-    )
+    // Use our centralized client with latest best practices
+    const supabase = createClient(cookieStore)
 
     // Get the authenticated user
     const {
@@ -117,25 +100,8 @@ export async function POST(
         .join(", ")
     )
 
-    // Update to use getAll and setAll as recommended by Supabase
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll: () => {
-            return cookieStore.getAll().map(cookie => ({
-              name: cookie.name,
-              value: cookie.value
-            }))
-          },
-          setAll: cookies => {
-            // This is handled by middleware in Next.js
-            return
-          }
-        }
-      }
-    )
+    // Use our centralized client with latest best practices
+    const supabase = createClient(cookieStore)
 
     // Get the authenticated user
     const {
