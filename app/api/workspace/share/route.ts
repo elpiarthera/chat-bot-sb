@@ -68,6 +68,9 @@ export async function POST(request: NextRequest) {
     // After getting user ID from the function
     console.log("Looking up profile for user ID:", userId)
 
+    // Add this declaration to fix the missing variable error
+    let userProfile: any
+
     // Try to get their profile
     const { data: existingProfile, error: profileError } = await supabase
       .from("profiles")

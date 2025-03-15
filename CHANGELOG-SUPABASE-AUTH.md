@@ -345,9 +345,11 @@ Fixed 500 error "Unable to access user management API" when trying to share a wo
 
 ### Root Cause
 1. Direct access to the `auth.users` table is restricted by Supabase security policies
-2. The `profiles` table doesn't contain email information
+2. Profile lookup was failing despite user having a profile (under investigation)
 
-### Final Solution
+### Solution Steps
+
+#### Step 1: Created User Lookup Function
 Created a PostgreSQL function with `SECURITY DEFINER` to safely query auth.users:
 
 ```sql
@@ -370,18 +372,80 @@ GRANT EXECUTE ON FUNCTION get_user_by_email TO authenticated;
 GRANT EXECUTE ON FUNCTION get_user_by_email TO service_role;
 ```
 
-Then updated the API to use this function:
-
+#### Step 2: Updated API to Use Function
 ```typescript
 // Replace the auth.users query with a call to our custom function
-const { data: user, error: userError } = await supabase
-  .rpc('get_user_by_email', { email_param: email })
+const { data: user, error: userError } = await supabase.rpc(
+  "get_user_by_email",
+  { email_param: email }
+)
 
 // Use the user ID from the function result
 const userId = user[0].id;
 ```
 
+#### Step 3: Added Profile Lookup Debugging
+Added detailed logging to profile lookup to diagnose why it was failing:
+
+```typescript
+// After getting user ID from the function
+console.log("Looking up profile for user ID:", userId);
+
+// Try to get their profile
+const { data: existingProfile, error: profileError } = await supabase
+  .from("profiles")
+  .select("id, user_id")
+  .eq("user_id", userId)
+  .single();
+
+// Add detailed logging to see what's happening
+console.log("Profile lookup results:", {
+  userId,
+  profileFound: !!existingProfile,
+  profile: existingProfile,
+  error: profileError ? {
+    message: profileError.message,
+    details: profileError.details,
+    code: profileError.code
+  } : null
+});
+```
+
+#### Step 4: Profile Creation Fallback
+Added fallback to create a profile if one doesn't exist:
+
+```typescript
+if (profileError || !existingProfile) {
+  console.log("No profile found for user, creating one...");
+  
+  // Create a basic profile for the user
+  const { data: newProfile, error: createError } = await supabase
+    .from("profiles")
+    .insert({
+      user_id: userId,
+      // Add required fields with default values
+      has_onboarded: false
+    })
+    .select("id, user_id")
+    .single();
+    
+  if (createError || !newProfile) {
+    console.error("Failed to create profile:", createError);
+    return new NextResponse(
+      "Could not create a profile for this user. Please try again later.",
+      { status: 500 }
+    );
+  }
+  
+  userProfile = newProfile;
+} else {
+  userProfile = existingProfile;
+}
+```
+
 ### Key Learnings
 1. Direct access to auth.users is restricted even with service_role
 2. Creating a SECURITY DEFINER function is the proper way to access sensitive tables
-3. Always test database functions directly in SQL before implementing in code 
+3. Always test database functions directly in SQL before implementing in code
+4. Add detailed error logging when troubleshooting data access issues
+5. Consider automatic profile creation for users who authenticate but don't have profiles 
