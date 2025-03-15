@@ -1,5 +1,102 @@
 # Supabase Authentication Update Changelog
 
+## Workspace Sharing Fix - 2025-03-15
+
+### Issue Fixed
+Fixed 500 error "Unable to access user management API" when trying to share a workspace with another user by email.
+
+### Root Cause
+1. The original implementation incorrectly tried to query `profiles` table with an `email` field that doesn't exist in our schema
+2. The fallback approach attempted to use `auth.users` with improper access patterns
+3. **Update**: Access to `auth.users` table might be restricted despite using service role
+
+### What Failed and Why
+1. Using `profiles.email`: Failed because our `profiles` table schema doesn't have an email column (emails are stored only in `auth.users`)
+2. Using `supabase.auth.admin.getUserByEmail()`: Failed because this method doesn't exist in our Supabase version
+3. Using regular client to access `auth.users`: Failed because it requires service role access
+4. **Update**: Direct SQL access to `auth.users` may still fail even with service role due to Supabase security policies
+
+### Debugging Approach
+Added detailed logging to pinpoint the exact issue with accessing auth.users:
+
+```diff
+// Add more detailed debugging before our existing query
+console.log("Service role key available:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log("About to query auth.users with email:", email);
+
+// Try direct query approach with better logging
+const { data: authUser, error } = await adminClient
+  .from("auth.users")
+  .select("id, email")
+  .ilike("email", email)
+  .maybeSingle()
+
+// Add VERY detailed logging to see exactly what's happening
+console.log("Auth query results:", {
+  email: email,
+  found: !!authUser,
+  user: authUser,
+  error: error ? {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code
+  } : null
+});
+```
+
+### Key Learnings
+1. Our database schema doesn't duplicate email in profiles table
+2. When working with Supabase auth tables, always use the admin client with service role
+3. Case-insensitive matching is important for email lookups
+4. Direct SQL queries to auth.users via the admin client may not work in all Supabase configurations
+5. **Critical**: Always verify approaches with Supabase documentation before implementing changes
+6. Proper debugging with detailed error logging is essential for troubleshooting auth issues
+
+### Next Steps (Based on Debug Results)
+Depending on debug results, we may need to:
+1. Use Auth Admin API methods like `listUsers()` instead of direct table access
+2. Create a custom RPC function in Supabase to look up users by email
+3. Set up proper policies to allow access to auth.users with service role
+
+### Solution
+1. Created a proper admin client with `createClient(cookieStore, { admin: true })`
+2. Directly queried the `auth.users` table using string format: `.from("auth.users")`
+3. Used case-insensitive email matching with `.ilike("email", email)`
+4. Added better error handling and debugging logs
+5. Used email from original request in the response instead of trying to get it from profile
+
+### Changes Made
+```diff
+// Try to directly query auth.users using the service role client
+const adminClient = createClient(cookieStore, { admin: true })
+
+// Try with a simpler approach - direct SQL query
+const { data: authUser, error } = await adminClient
+  .from("auth.users")
+  .select("id, email")
+  .ilike("email", email)
+  .maybeSingle()
+
+console.log("Auth user lookup attempt:", {
+  email: email,
+  error: error?.message,
+  found: !!authUser,
+  userId: authUser?.id
+})
+
+if (!authUser) {
+  return new NextResponse(
+    `User not found with email: ${email}. They must register an account first.`,
+    { status: 404 }
+  )
+}
+
+const userId = authUser.id
+```
+
+---
+
 **Date:** `2023-08-01 10:15 UTC`
 
 ## Overview

@@ -44,18 +44,33 @@ export async function POST(request: NextRequest) {
     // Try to directly query auth.users using the service role client
     const adminClient = createClient(cookieStore, { admin: true })
 
-    // Try with a simpler approach - direct SQL query
+    // Add more detailed debugging before our existing query
+    console.log(
+      "Service role key available:",
+      !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    )
+    console.log("About to query auth.users with email:", email)
+
+    // Try direct query approach with better logging
     const { data: authUser, error } = await adminClient
       .from("auth.users")
       .select("id, email")
       .ilike("email", email)
       .maybeSingle()
 
-    console.log("Auth user lookup attempt:", {
+    // Add VERY detailed logging to see exactly what's happening
+    console.log("Auth query results:", {
       email: email,
-      error: error?.message,
       found: !!authUser,
-      userId: authUser?.id
+      user: authUser,
+      error: error
+        ? {
+            message: error.message,
+            details: error.details,
+            hint: error.hint,
+            code: error.code
+          }
+        : null
     })
 
     if (!authUser) {
