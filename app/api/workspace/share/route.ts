@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Add user to workspace directly
-    const { error: insertError } = await supabase
+    // Add user to workspace directly with ADMIN client
+    const { error: insertError } = await customSupabase
       .from("workspace_users")
       .insert({
         workspace_id: workspaceId,
@@ -94,8 +94,19 @@ export async function POST(request: NextRequest) {
         role: role || "viewer"
       })
 
+    // Add detailed error logging
     if (insertError) {
-      console.error("Failed to add user to workspace:", insertError)
+      console.error("Failed to add user to workspace:", {
+        workspaceId,
+        userId,
+        role: role || "viewer",
+        error: {
+          message: insertError.message,
+          details: insertError.details,
+          code: insertError.code,
+          hint: insertError.hint
+        }
+      })
       return new NextResponse("Failed to add user to workspace", {
         status: 500
       })
