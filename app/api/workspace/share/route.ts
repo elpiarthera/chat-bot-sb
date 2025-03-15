@@ -41,35 +41,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Look in auth system for the user with this email
-    let userId = null
+    // Try to directly query auth.users using the service role client
+    const adminClient = createClient(cookieStore, { admin: true })
 
-    // Try to find user with admin API if available
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const { data: authUser, error } = await supabase.auth.admin.listUsers()
+    // Try with a simpler approach - direct SQL query
+    const { data: authUser, error } = await adminClient
+      .from("auth.users")
+      .select("id, email")
+      .ilike("email", email)
+      .maybeSingle()
 
-      if (error) {
-        console.error("Admin API error:", error)
-      } else {
-        // Find user with matching email (case insensitive)
-        const matchedUser = authUser.users.find(
-          u => u.email?.toLowerCase() === email.toLowerCase()
-        )
+    console.log("Auth user lookup attempt:", {
+      email: email,
+      error: error?.message,
+      found: !!authUser,
+      userId: authUser?.id
+    })
 
-        if (matchedUser) {
-          userId = matchedUser.id
-          console.log("Found user via admin API:", userId)
-        }
-      }
-    }
-
-    // If user not found yet, try other methods or return error
-    if (!userId) {
+    if (!authUser) {
       return new NextResponse(
         `User not found with email: ${email}. They must register an account first.`,
         { status: 404 }
       )
     }
+
+    const userId = authUser.id
 
     // Now get their profile with the user_id we found
     const { data: userProfile, error: profileError } = await supabase
