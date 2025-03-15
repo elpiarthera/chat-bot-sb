@@ -62,96 +62,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use the user ID from the function result
+    // After getting the user ID from the function
     const userId = user[0].id
 
-    // After getting user ID from the function
-    console.log("Looking up profile for user ID:", userId)
-
-    // Add this declaration to fix the missing variable error
-    let userProfile: any
-
-    // Try to get their profile
-    const { data: existingProfile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, user_id")
-      .eq("user_id", userId)
-      .single()
-
-    // Add detailed logging to see what's happening
-    console.log("Profile lookup results:", {
+    console.log(
+      "Found user with ID:",
       userId,
-      profileFound: !!existingProfile,
-      profile: existingProfile,
-      error: profileError
-        ? {
-            message: profileError.message,
-            details: profileError.details,
-            code: profileError.code
-          }
-        : null
-    })
+      "- Proceeding to add to workspace"
+    )
 
-    if (profileError || !existingProfile) {
-      console.log("No profile found for user, creating one...")
-
-      // Create a basic profile for the user
-      const { data: newProfile, error: createError } = await supabase
-        .from("profiles")
-        .insert({
-          user_id: userId,
-          // Add any required fields with default values
-          has_onboarded: false
-        })
-        .select("id, user_id")
-        .single()
-
-      if (createError || !newProfile) {
-        console.error("Failed to create profile:", createError)
-        return new NextResponse(
-          "Could not create a profile for this user. Please try again later.",
-          { status: 500 }
-        )
-      }
-
-      userProfile = newProfile
-    } else {
-      userProfile = existingProfile
-    }
-
-    // Check if already shared
-    const { data: existingShare } = await customSupabase
+    // Check if user is already in the workspace (skip profile lookup)
+    const { data: existingWorkspaceUser } = await supabase
       .from("workspace_users")
       .select("*")
       .eq("workspace_id", workspaceId)
       .eq("user_id", userId)
       .single()
 
-    if (existingShare) {
-      return new NextResponse("Workspace is already shared with this user", {
+    if (existingWorkspaceUser) {
+      return new NextResponse("User already has access to this workspace", {
         status: 400
       })
     }
 
-    // Share the workspace
-    const { data: workspaceUser, error: shareError } = await customSupabase
+    // Add user to workspace directly
+    const { error: insertError } = await supabase
       .from("workspace_users")
       .insert({
         workspace_id: workspaceId,
-        user_id: userId, // Use the correct user ID
-        role: role || "viewer" // Default to viewer
+        user_id: userId,
+        role: role || "viewer"
       })
-      .select("*")
-      .single()
 
-    if (shareError) {
-      console.error("Database error while sharing workspace:", shareError)
-      return new NextResponse("Error saving workspace share", { status: 500 })
+    if (insertError) {
+      console.error("Failed to add user to workspace:", insertError)
+      return new NextResponse("Failed to add user to workspace", {
+        status: 500
+      })
     }
 
+    // Return success
     return NextResponse.json({
-      ...workspaceUser,
-      email: email // Just use the email from the original request
+      workspaceId,
+      userId,
+      role: role || "viewer"
     })
   } catch (error: any) {
     console.error("Workspace sharing error:", error)
