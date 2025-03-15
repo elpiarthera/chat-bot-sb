@@ -52,52 +52,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Try to find the user with this email, First try with the nomal client
-    let { data: userToShare, error: userError } = await supabase
+    const { data: userToShare, error: userError } = await supabase
       .from("profiles")
       .select("id, user_id, email")
       .eq("email", email)
       .single()
 
-    if (!userToShare) {
-      // If not found with user client, try with the admin client
-      // Since getUserByEmail doesn't exist, we need to list users and filter by email
-      const { data, error } = await adminClient
-        .from("auth.users")
-        .select("id, email")
-        .eq("email", email)
-        .single()
-
-      if (error) {
-        console.error("Error accessing admin API:", error)
-        return new NextResponse("Unable to access user management API", {
-          status: 500
-        })
-      }
-
-      // Check if user is found
-      if (!data) {
-        return new NextResponse(`No user found with email: ${email}`, {
-          status: 404
-        })
-      }
-
-      // Set user id
-      const { data: userProfile, error: userProfileError } = await supabase
-        .from("profiles")
-        .select("id, user_id, email")
-        .eq("user_id", data.id)
-        .single()
-
-      if (userProfileError) {
-        console.error(
-          "Error accessing user data from profile:",
-          userProfileError
-        )
-        return new NextResponse("Unable to get user profile", {
-          status: 500
-        })
-      }
-      userToShare = userProfile
+    if (userError || !userToShare) {
+      console.error("Error finding user by email:", userError)
+      return new NextResponse(
+        `User not found with email: ${email}. They must register an account first.`,
+        { status: 404 }
+      )
     }
 
     console.log(
