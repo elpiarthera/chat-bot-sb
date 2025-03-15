@@ -345,15 +345,14 @@ Fixed 500 error "Unable to access user management API" when trying to share a wo
 
 ### Root Cause
 1. Direct access to the `auth.users` table is restricted by Supabase security policies
-2. Profile lookup was failing despite user having a profile (under investigation)
+2. Profile lookup/creation was causing errors despite user having a profile
 
-### Solution Steps
+### Final Solution
 
 #### Step 1: Created User Lookup Function
 Created a PostgreSQL function with `SECURITY DEFINER` to safely query auth.users:
 
 ```sql
--- Create a function that runs with creator's privileges
 CREATE FUNCTION get_user_by_email(email_param TEXT)
 RETURNS TABLE (
   id UUID,
@@ -367,85 +366,57 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Grant permission to use the function
 GRANT EXECUTE ON FUNCTION get_user_by_email TO authenticated;
 GRANT EXECUTE ON FUNCTION get_user_by_email TO service_role;
 ```
 
-#### Step 2: Updated API to Use Function
+#### Step 2: Simplified Workflow
+Completely redesigned the workflow to avoid profile lookup entirely:
+
 ```typescript
-// Replace the auth.users query with a call to our custom function
+// Get user ID from our custom function
 const { data: user, error: userError } = await supabase.rpc(
   "get_user_by_email",
   { email_param: email }
 )
 
-// Use the user ID from the function result
-const userId = user[0].id;
-```
+// Skip profile lookup and directly add to workspace
+const userId = user[0].id
 
-#### Step 3: Added Profile Lookup Debugging
-Added detailed logging to profile lookup to diagnose why it was failing:
-
-```typescript
-// After getting user ID from the function
-console.log("Looking up profile for user ID:", userId);
-
-// Try to get their profile
-const { data: existingProfile, error: profileError } = await supabase
-  .from("profiles")
-  .select("id, user_id")
+// Check if already in workspace
+const { data: existingWorkspaceUser } = await supabase
+  .from("workspace_users")
+  .select("*")
+  .eq("workspace_id", workspaceId)
   .eq("user_id", userId)
-  .single();
+  .single()
 
-// Add detailed logging to see what's happening
-console.log("Profile lookup results:", {
-  userId,
-  profileFound: !!existingProfile,
-  profile: existingProfile,
-  error: profileError ? {
-    message: profileError.message,
-    details: profileError.details,
-    code: profileError.code
-  } : null
-});
-```
-
-#### Step 4: Profile Creation Fallback
-Added fallback to create a profile if one doesn't exist:
-
-```typescript
-if (profileError || !existingProfile) {
-  console.log("No profile found for user, creating one...");
-  
-  // Create a basic profile for the user
-  const { data: newProfile, error: createError } = await supabase
-    .from("profiles")
-    .insert({
-      user_id: userId,
-      // Add required fields with default values
-      has_onboarded: false
-    })
-    .select("id, user_id")
-    .single();
-    
-  if (createError || !newProfile) {
-    console.error("Failed to create profile:", createError);
-    return new NextResponse(
-      "Could not create a profile for this user. Please try again later.",
-      { status: 500 }
-    );
-  }
-  
-  userProfile = newProfile;
-} else {
-  userProfile = existingProfile;
+if (existingWorkspaceUser) {
+  return new NextResponse("User already has access to this workspace", {
+    status: 400
+  })
 }
+
+// Add user to workspace directly
+const { error: insertError } = await supabase
+  .from("workspace_users")
+  .insert({
+    workspace_id: workspaceId,
+    user_id: userId,
+    role: role || "viewer"
+  })
+
+// Return success
+return NextResponse.json({
+  workspaceId,
+  userId,
+  role: role || "viewer"
+})
 ```
 
 ### Key Learnings
-1. Direct access to auth.users is restricted even with service_role
-2. Creating a SECURITY DEFINER function is the proper way to access sensitive tables
-3. Always test database functions directly in SQL before implementing in code
-4. Add detailed error logging when troubleshooting data access issues
-5. Consider automatic profile creation for users who authenticate but don't have profiles 
+1. Direct access to auth.users is restricted even with service_role - use custom functions
+2. Sometimes a simpler solution is better than trying to handle every edge case
+3. Focus on the primary goal (sharing workspace) rather than secondary concerns (profile validation)
+4. When debugging complex issues, don't be afraid to completely simplify the approach
+5. Better to use direct RPC functions than complex table queries for auth operations 
