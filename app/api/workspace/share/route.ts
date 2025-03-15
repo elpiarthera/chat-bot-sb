@@ -85,39 +85,32 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Add user to workspace directly with ADMIN client
-    const { error: insertError } = await customSupabase
-      .from("workspace_users")
-      .insert({
-        workspace_id: workspaceId,
-        user_id: userId,
-        role: role || "viewer"
+    // Try a completely different approach with a direct SQL query
+    try {
+      // Use the execute_sql function we just created
+      const { data, error } = await supabase.rpc("execute_sql", {
+        query: `
+            INSERT INTO workspace_users (workspace_id, user_id, role) 
+            VALUES ('${workspaceId}', '${userId}', '${role || "viewer"}')
+            RETURNING to_jsonb(*);
+          `
       })
 
-    // Add detailed error logging
-    if (insertError) {
-      console.error("Failed to add user to workspace:", {
-        workspaceId,
-        userId,
-        role: role || "viewer",
-        error: {
-          message: insertError.message,
-          details: insertError.details,
-          code: insertError.code,
-          hint: insertError.hint
-        }
+      if (error) {
+        console.error("SQL execution error:", error)
+        return new NextResponse("SQL error: " + error.message, { status: 500 })
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: "User added to workspace via SQL"
       })
-      return new NextResponse("Failed to add user to workspace", {
+    } catch (error: any) {
+      console.error("SQL exception:", error)
+      return new NextResponse("SQL exception: " + error.message, {
         status: 500
       })
     }
-
-    // Return success
-    return NextResponse.json({
-      workspaceId,
-      userId,
-      role: role || "viewer"
-    })
   } catch (error: any) {
     console.error("Workspace sharing error:", error)
     return new NextResponse(error.message || "An unexpected error occurred", {
