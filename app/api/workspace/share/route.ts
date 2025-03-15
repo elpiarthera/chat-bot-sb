@@ -41,37 +41,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use admin API to find the user by email
-    const adminClient = createClient(cookieStore, { admin: true })
+    // Look in auth system for the user with this email
+    let userId = null
 
-    // Verify the admin client has the service role key
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return new NextResponse("Server is not configured with admin access", {
-        status: 500
-      })
+    // Try to find user with admin API if available
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const { data: authUser, error } = await supabase.auth.admin.listUsers()
+
+      if (error) {
+        console.error("Admin API error:", error)
+      } else {
+        // Find user with matching email (case insensitive)
+        const matchedUser = authUser.users.find(
+          u => u.email?.toLowerCase() === email.toLowerCase()
+        )
+
+        if (matchedUser) {
+          userId = matchedUser.id
+          console.log("Found user via admin API:", userId)
+        }
+      }
     }
 
-    // Try to find the user with this email, First try with the nomal client
-    const { data: userToShare, error: userError } = await supabase
-      .from("profiles")
-      .select("id, user_id, email")
-      .eq("email", email)
-      .single()
-
-    if (userError || !userToShare) {
-      console.error("Error finding user by email:", userError)
+    // If user not found yet, try other methods or return error
+    if (!userId) {
       return new NextResponse(
         `User not found with email: ${email}. They must register an account first.`,
         { status: 404 }
       )
     }
 
-    console.log(
-      "Found user in auth database:",
-      userToShare.user_id,
-      userToShare.email
-    )
-    const userId = userToShare.user_id
+    // Now get their profile with the user_id we found
+    const { data: userProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, user_id")
+      .eq("user_id", userId)
+      .single()
+
+    if (profileError || !userProfile) {
+      console.error("Error finding user profile:", profileError)
+      return new NextResponse("User has an account but no profile was found.", {
+        status: 404
+      })
+    }
 
     // Check if already shared
     const { data: existingShare } = await customSupabase
@@ -105,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ...workspaceUser,
-      email: userToShare.email // Include email in response for UI
+      email: email // Just use the email from the original request
     })
   } catch (error: any) {
     console.error("Workspace sharing error:", error)
