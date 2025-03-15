@@ -41,46 +41,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Try to directly query auth.users using the service role client
-    const adminClient = createClient(cookieStore, { admin: true })
-
-    // Add more detailed debugging before our existing query
-    console.log(
-      "Service role key available:",
-      !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    // Replace the auth.users query with a call to our custom function
+    const { data: user, error: userError } = await supabase.rpc(
+      "get_user_by_email",
+      { email_param: email }
     )
-    console.log("About to query auth.users with email:", email)
 
-    // Try direct query approach with better logging
-    const { data: authUser, error } = await adminClient
-      .from("auth.users")
-      .select("id, email")
-      .ilike("email", email)
-      .maybeSingle()
-
-    // Add VERY detailed logging to see exactly what's happening
-    console.log("Auth query results:", {
-      email: email,
-      found: !!authUser,
-      user: authUser,
-      error: error
-        ? {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code
-          }
-        : null
+    console.log("Function lookup result:", {
+      email,
+      found: !!user?.[0],
+      user: user?.[0],
+      error: userError
     })
 
-    if (!authUser) {
+    if (!user || user.length === 0) {
+      console.error("No user found with email:", email)
       return new NextResponse(
         `User not found with email: ${email}. They must register an account first.`,
         { status: 404 }
       )
     }
 
-    const userId = authUser.id
+    // Use the user ID from the function result
+    const userId = user[0].id
 
     // Now get their profile with the user_id we found
     const { data: userProfile, error: profileError } = await supabase

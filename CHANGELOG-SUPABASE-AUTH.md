@@ -337,3 +337,51 @@ If issues are encountered, these changes can be reverted by:
 1. Restoring the original `lib/supabase/server.ts` implementation with `get`/`set`/`remove` methods
 2. Restoring the custom Supabase client implementations in each API route
 3. Testing after rollback to ensure authentication works as it did before 
+
+## Workspace Sharing Fix - 2025-03-15 (Final Solution)
+
+### Issue Fixed
+Fixed 500 error "Unable to access user management API" when trying to share a workspace with another user by email.
+
+### Root Cause
+1. Direct access to the `auth.users` table is restricted by Supabase security policies
+2. The `profiles` table doesn't contain email information
+
+### Final Solution
+Created a PostgreSQL function with `SECURITY DEFINER` to safely query auth.users:
+
+```sql
+-- Create a function that runs with creator's privileges
+CREATE FUNCTION get_user_by_email(email_param TEXT)
+RETURNS TABLE (
+  id UUID,
+  email VARCHAR(255)
+) SECURITY DEFINER AS $$
+BEGIN
+  RETURN QUERY
+  SELECT au.id, au.email
+  FROM auth.users au
+  WHERE LOWER(au.email) = LOWER(email_param);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Grant permission to use the function
+GRANT EXECUTE ON FUNCTION get_user_by_email TO authenticated;
+GRANT EXECUTE ON FUNCTION get_user_by_email TO service_role;
+```
+
+Then updated the API to use this function:
+
+```typescript
+// Replace the auth.users query with a call to our custom function
+const { data: user, error: userError } = await supabase
+  .rpc('get_user_by_email', { email_param: email })
+
+// Use the user ID from the function result
+const userId = user[0].id;
+```
+
+### Key Learnings
+1. Direct access to auth.users is restricted even with service_role
+2. Creating a SECURITY DEFINER function is the proper way to access sensitive tables
+3. Always test database functions directly in SQL before implementing in code 
