@@ -65,18 +65,55 @@ export async function POST(request: NextRequest) {
     // Use the user ID from the function result
     const userId = user[0].id
 
-    // Now get their profile with the user_id we found
-    const { data: userProfile, error: profileError } = await supabase
+    // After getting user ID from the function
+    console.log("Looking up profile for user ID:", userId)
+
+    // Try to get their profile
+    const { data: existingProfile, error: profileError } = await supabase
       .from("profiles")
       .select("id, user_id")
       .eq("user_id", userId)
       .single()
 
-    if (profileError || !userProfile) {
-      console.error("Error finding user profile:", profileError)
-      return new NextResponse("User has an account but no profile was found.", {
-        status: 404
-      })
+    // Add detailed logging to see what's happening
+    console.log("Profile lookup results:", {
+      userId,
+      profileFound: !!existingProfile,
+      profile: existingProfile,
+      error: profileError
+        ? {
+            message: profileError.message,
+            details: profileError.details,
+            code: profileError.code
+          }
+        : null
+    })
+
+    if (profileError || !existingProfile) {
+      console.log("No profile found for user, creating one...")
+
+      // Create a basic profile for the user
+      const { data: newProfile, error: createError } = await supabase
+        .from("profiles")
+        .insert({
+          user_id: userId,
+          // Add any required fields with default values
+          has_onboarded: false
+        })
+        .select("id, user_id")
+        .single()
+
+      if (createError || !newProfile) {
+        console.error("Failed to create profile:", createError)
+        return new NextResponse(
+          "Could not create a profile for this user. Please try again later.",
+          { status: 500 }
+        )
+      }
+
+      userProfile = newProfile
+    } else {
+      userProfile = existingProfile
     }
 
     // Check if already shared
