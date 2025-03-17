@@ -55,7 +55,7 @@ to apply the latest migrations to your live database.
 
 ## Local Quickstart
 
-Follow these steps to get your own My AI team instance running locally.
+Follow these steps to get your own My Team AI instance running locally.
 
 You can watch the full video tutorial / coming soon
 
